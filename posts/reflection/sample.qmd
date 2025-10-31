@@ -1,9 +1,10 @@
 ---
-title: "Sample reflection post"
-date: "2025-08-29"
+title: "Current version of my computational artifact"
+date: "2025-09-31"
 ---
 
 ![Image post thumbnail](thumbnail.jpg)
 
-Students complete these posts in response to various reflective prompts introduced
-throughout the semester.
+## Reflection Summary
+
+This is my reflection article on the current vresion of my computational artifact that I have right now at the point of giving our prototype presentations.
