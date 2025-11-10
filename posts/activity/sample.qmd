@@ -1,10 +1,24 @@
 ---
-title: "Activity template post"
-date: "2024-08-29"
+title: "The Title of My Project"
+date: "2025-10-07"
 ---
 
-This is the first post in a Quarto blog. Welcome!
+## The Title
 
-![](thumbnail.jpg)
+I was thinking a lot about choosing the correct title for my tool. I wanted something meaningful, but also related to Python and the research
+I am working on. Since, my tool is an automated code generator to test different type checkers made for Python, my goal was to include it somehow
+in the name of the tool. I really feel like my project is kind of a "bridge" between today's problem - which is the fact that we do not know 100%
+which type checker is the most reliable and where should we focus on improving them - and the future where we can generate many code examples by
+one command and evaluate type checkers.
 
-Since this post doesn't specify an explicit `image`, the first image in the post will be used in the listing page of posts.
+## First Part of the Title
+
+Since I could not really include type checker in the name I went with python and I just used Py. By looking at these two letters everyone knows
+in the computer science world what is the target language. That is the reason why I have thought that it is a good first part of the name.
+
+## Second Part of the Title
+
+The second part is more complex. Like I mentioned, I think of my project as a "bridge" between two worlds. I wanted to include history and a little
+mistery in the name of the tool. That is the reason I chose "tifex" as the second part. This comes from the term Pontifex Maximus which means
+"the greatest bridge-builder". This title was adopted by Roman emperors. I did not want to include Maximus in the name of pytifex since it would sound
+too arrogant for me. Also the name sounds good when I pronounce it, so I thought it is a good name for the tool. 
