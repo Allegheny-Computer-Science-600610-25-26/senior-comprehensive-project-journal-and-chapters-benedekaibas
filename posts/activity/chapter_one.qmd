@@ -1,0 +1,16 @@
+---
+title: "Chapter One of My Senior Thesis"
+date: "2025-10-11"
+---
+
+# Introduction
+
+Chapter one of the senior thesis project is about the introduction to our research/tool. In this post I will give you an introduction to my senior
+thesis. By the end of this introduction I hope you will have a better idea about my research!
+
+# Problem We Face
+
+Type related errors are the leading errors in Python programming language according to (Oh & Oh, 2022). We have static analysis toolsets that are
+scanning our source code and without running it they produce analysis. The feedback of these static analysis tools or type checkers is important for
+developers to determine, if their code has type related errors. However, these type checkers are not working perfectly and they tend to produce false positive
+or false negative reports.
