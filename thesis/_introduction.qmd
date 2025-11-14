@@ -3,7 +3,7 @@ title: "Chapter One of My Senior Thesis"
 date: "2025-10-11"
 ---
 
-# Chaper One
+# Introduction
 
 Chapter one of the senior thesis project is about the introduction to our research/tool. In this post I will give you an introduction to my senior
 thesis. By the end of this introduction I hope you will have a better idea about my research!
