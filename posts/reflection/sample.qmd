@@ -1,10 +1,40 @@
 ---
-title: "Current version of my computational artifact"
-date: "2025-09-31"
+title: "Reflection on the current version of my computational artifact"
+date: "2025-10-14"
 ---
 
 ![Image post thumbnail](thumbnail.jpg)
 
-## Reflection Summary
+## Current Version of My Senior Comprehensive Project
 
-This is my reflection article on the current vresion of my computational artifact that I have right now at the point of giving our prototype presentations.
+At this point I have implemented the prototype of my tool and gave my first presentation for the Senior Seminar. So far my prototype works
+as I expect it to work, but there is still a lot to do in order to make it 100% done working with my research paper. I think, if I continue
+putting the work into pytifex then it can be a very good reseach paper delivered with an automated code generator that would help developer
+teams working on type checkers. I am really looking forward on what the future holds for this research!
+
+## What Challanges Did I Face So Far?
+
+Implementing pytifex (or any other reserch tool & paper) is a very exciting progress, but it takes time and requires the person to put the 
+hard work into it. I am in a very fortunate situation, because I get help from such a great professors like professor Kapfhammer and professor
+Luman that are not just supporting me during this work, but also give me all their resources, knowledge, and experience. I really feel that my
+comp is not just my achievement, but also the achievement of these two professors. Their help reduces the challanges I have to face during the 
+implementation part of pytifex.
+
+One of the challanges I face several time is turning my ideas into code and make sure it works how I expect it. I have to give a prompt to the 
+LLM Agent that I choose to work with and the pompt matters a lot. If the prompt is not good enough then the generated examples won't force type
+checkers to create either false positive or false negative code examples. I was making so many different prompts and tweak the ones I found good
+soo many time, but I never really get the feeling of "yes, this is the solution that will work on a general basis". Then I talked about this with
+professor Kapfhammer and he highlighted the point which was that "your prompt matters, but not as much as you think, if you change your strategy".
+
+So, what is the strategy? Instead of making a long prompt, I should just tweak the message to the LLM Agent not to give me code back until there isn't
+disagreement between the type checkers. By that I also ask the LLM to run type checker in it's code generating process which is another tool in the automated
+process. After that I get code samples that have better quality and when I run type checkers automatically on these examples, it will more likely lead to cases
+where some or all of them report false positive or false negative.
+
+## Is a Problem a Problem or a Challange?
+
+I really feel that, if you enjoy doing something then you do not really face problems, but rather challanges that make you excited to work on -to be honest they do
+not always make me excited-, but in 99% of cases they do! This also leads not just to a better tool, but also gives me more knowledge and experience that will be beneficial
+in the future for my professional work for sure.
+
+## PLACE HOLDER

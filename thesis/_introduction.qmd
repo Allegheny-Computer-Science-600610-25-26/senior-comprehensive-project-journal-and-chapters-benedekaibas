@@ -3,12 +3,12 @@ title: "Chapter One of My Senior Thesis"
 date: "2025-10-11"
 ---
 
-# Introduction
+# Chaper One
 
 Chapter one of the senior thesis project is about the introduction to our research/tool. In this post I will give you an introduction to my senior
 thesis. By the end of this introduction I hope you will have a better idea about my research!
 
-# Problem We Face and The Importance of It
+## Problem We Face and The Importance of It
 
 Type related errors are the leading errors in Python programming language according to (Oh & Oh, 2022). We have static analysis toolsets that are
 scanning our source code and without running it they produce analysis. The feedback of these static analysis tools or type checkers is important for
@@ -20,7 +20,7 @@ Also if we encounter a false report in a type checker it only happens, if someon
 but that requires writing codes and running at least one type checker on that source code. If someone has a code that would lead to a false report, but does not use
 type checker analysis on the source code then we will never know about it.
 
-# Motivation
+## Motivation
 
 Right now, we face many difficulties about type checkers. We do not have an automated way of generating code examples that would force type checkers to produce
 false reports. Also we have to wait for someone to submit an issue with code example that leads to a false case in a type checker, but even if that happens we have to
@@ -33,7 +33,7 @@ If we have a program like I described then improving the accuracy of type checke
 work on new features that are recently included in Python or will be included in later releases. By that we would be able to keep type checkers up to date with the newest
 versions of the Python programming language.
 
-# Research Goals
+## Research Goals
 
 My research paper aims to provide a tool that can automatically generate code examples that would force the type checkers to report false negatives, false positives, and valid reports.
 Then it would be able to determine which type checkers were correct. Based on this information my research paper will evaluate the different type checkers, suggest what changes would
