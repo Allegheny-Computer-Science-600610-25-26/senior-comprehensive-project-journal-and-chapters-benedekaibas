@@ -71,30 +71,9 @@ Through these examples it is clear that in software engineering static analyzers
 My goal with this research is to provide feedback for developer teams working on these type checkers on where their type checkers should be improved and also provide an automated tool that 
 generates new, uncovered examples that are able to trigger type checkers to provide false reports.
 
-## Problem We Face and The Importance of It
-
-Type related errors are the leading errors in Python programming language according to (Oh & Oh, 2022). We have static analysis toolsets that are
-scanning our source code and without running it they produce analysis. The feedback of these static analysis tools or type checkers is important for
-developers to determine, if their code has type related errors. However, these type checkers are not working perfectly and they tend to produce false positive
-or false negative reports. On the same source code different type checkers can produce different reports. The problem we have right now is that we do not
-know which type checker's report is valid without going to the source code and analyze it by ourselves.
-
-Also if we encounter a false report in a type checker it only happens, if someone's code resulted in a false positive or false negative report from a type checker,
-but that requires writing codes and running at least one type checker on that source code. If someone has a code that would lead to a false report, but does not use
-type checker analysis on the source code then we will never know about it.
-
 ## Motivation
 
-Right now, we face many difficulties about type checkers. We do not have an automated way of generating code examples that would force type checkers to produce
-false reports. Also we have to wait for someone to submit an issue with code example that leads to a false case in a type checker, but even if that happens we have to
-manually visit other type checkers, run those type checkers on the example and see their output.
 
-For conclusion, we can clearly say that we need a program that does all this for us in an automated way, so we can encounter many different and new logics that trigger
-type checkers and force them to give false reports. Also we would need the same program to automatically evaluate the report of different type checkers.
-
-If we have a program like I described then improving the accuracy of type checkers would be way faster and more reliable. It would also be possible to see how type checkers
-work on new features that are recently included in Python or will be included in later releases. By that we would be able to keep type checkers up to date with the newest
-versions of the Python programming language.
 
 ## Research Goals
 
