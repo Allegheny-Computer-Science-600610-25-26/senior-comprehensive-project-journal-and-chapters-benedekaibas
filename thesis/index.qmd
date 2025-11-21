@@ -31,6 +31,8 @@ author:
 
 abstract: |
   A well-researched student project. Like very.
+execute:
+  eval: false
 ---
 
 # Template description
