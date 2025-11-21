@@ -26,6 +26,10 @@ jobs:
         run: |
           quarto install tinytex
         if: always()
+      - name: install jupyter
+        run: |
+          python -m pip install jupyter
+        if: always()
       - name: Render the PDF
         run: |
           quarto render thesis/index.qmd --to allegheny-cis-pdf
