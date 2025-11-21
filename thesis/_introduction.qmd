@@ -9,7 +9,7 @@ According to StackOverflow, IEEE, and other surveys Python has became the most p
 is used in various fields, such as: web development, enterprise, embedded domains, machine learning, and artificial intelligence. However, Python suffers from runtime
 errors. The leading runtime errors are type related errors. Type error happens when an operation is performed on a value of an unsupported type.
 
-```{ython}
+```{python}
 def foo(number: int) -> int:
   """Return the input as a squared number."""
   return "The squared number is: ", number**2
