@@ -5,8 +5,55 @@ date: "2025-10-11"
 
 # Introduction
 
-Chapter one of the senior thesis project is about the introduction to our research/tool. In this post I will give you an introduction to my senior
-thesis. By the end of this introduction I hope you will have a better idea about my research!
+According to StackOverflow, IEEE, and other surveys Python has became the most popular programming language by 2025. We can see that Python programming language
+is used in various fields, such as: web development, enterprise, embedded domains, machine learning, and artificial intelligence. However, Python suffers from runtime
+errors. The leading runtime errors are type related errors. Type error happens when an operation is performed on a value of an unsupported type.
+
+```{ython}
+def foo(number: int) -> int:
+  """Return the input as a squared number."""
+  return "The squared number is: ", number**2
+```
+
+In this case even though the programmer wanted to return a nice way of representing the squared input number type error occured. Since in the function declaration it is 
+stated that the return type of this function has to be an integer the following implementation is wrong, because it returns a tuple that contains string and integer.
+
+To catch these type related errors in large code bases type checkers can provide a significant amount of help. Type checkers can detect type related errors in Python programs
+statically which means developers do not have to run the programs in order to see, if there is an error in their program. However, static analyzer are not perfect and they can
+produce false positive and false negative reports.
+
+By definition false positive means that the static analyer reported an error that is not an actual bug in the code.
+
+```{python}
+from enum import Enum, member
+from typing import reveal_type
+
+class E(Enum):
+  @member
+  def A() -> int:
+    return 1
+
+assert E.A.value() == 1
+reveal_type(E.A)
+reveal_type(E.A.value)
+```
+
+```{text}
+fp01.py:6: error: Method must have at least one argument. Did you forget the "self" argument?
+```
+
+This is a typical case where the type checker (mypy with version: 1.18.2) provided a false positive report. This issue got later fixed in the mypy type checker.
+False positives cause time overhead in terms of overviewing a code that is actually correct, so by reducing false positive reports in type checkers will lead to
+the point where programmers have to spend less time dealing with false positive reports and more time on fixing actual bugs.
+
+When a program has a bug in it, but the static analyzer misses catching it that case called false negative report. In this case the type checker(s) missed a bug that
+was indeed in the program's code. This is a serious issue because, if this bug does not get detected by static analyzers and neither test cases and goes to production
+that can cause bugs in the given system, service, etc. where the code is used.
+
+```{python}
+
+```
+
 
 ## Problem We Face and The Importance of It
 
