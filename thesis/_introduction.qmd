@@ -51,9 +51,25 @@ was indeed in the program's code. This is a serious issue because, if this bug d
 that can cause bugs in the given system, service, etc. where the code is used.
 
 ```{python}
+from typing import Protocol
 
+class CanHex(Protocol):
+  def hex(self, /) -> str: ...
+
+int_does_not_have_hex: CanHex = 959
+bool_does_not_have_hex: CanHex = False
 ```
 
+```{text}
+Success: no issues found in 1 source file
+```
+
+This example were taken from a real example where the mypy type checker with the 1.13 version missed detecting the bug. This issue got later resolved as well as the false positive case!
+
+Through these examples it is clear that in software engineering static analyzers play a crucial role, but -just as any other tools- they have their cons as well.
+
+My goal with this research is to provide feedback for developer teams working on these type checkers on where their type checkers should be improved and also provide an automated tool that 
+generates new, uncovered examples that are able to trigger type checkers to provide false reports.
 
 ## Problem We Face and The Importance of It
 
