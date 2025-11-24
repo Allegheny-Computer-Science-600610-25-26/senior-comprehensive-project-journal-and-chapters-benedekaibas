@@ -3,6 +3,14 @@ title: "An Empirical Study on Static Analyzer Toolsets to Reduce False Positives
 date: "2025-10-11"
 ---
 
+# Introduction
+
+By 2025, Python has established itself as the dominant programming language, a trend corroborated by major industry indices including the
+IEEE Spectrum and TIOBE [1, 2]. Its ecosystem is now foundational to diverse sectors, ranging from web and enterprise development to embedded
+systems and artificial intelligence. However, Python’s flexibility comes at a cost: a susceptibility to runtime failures. Research indicates
+that type-related errors are among the most prevalent runtime exceptions in Python development [3]. These errors, which occur when an operation
+is performed on an incompatible data type, account for a significant portion of defects in open-source Python projects [4].
+
 ## Motivation
 
 The adoption of static type checkers in Python has grown significantly over the past years. Major technology companies and open-source
