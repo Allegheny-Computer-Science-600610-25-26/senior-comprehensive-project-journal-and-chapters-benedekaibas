@@ -3,6 +3,88 @@ title: "An Empirical Study on Static Analyzer Toolsets to Reduce False Positives
 date: "2025-10-11"
 ---
 
+## Motivation
+
+The adoption of static type checkers in Python has grown significantly over the past years. Major technology companies and open-source
+projects have integrated type checking into their development workflows to catch bugs early in the development cycle. Tools like mypy,
+pyright, pyre, and pytype have become essential components in many Python projects' continuous integration pipelines. As the reliance on these 
+tools increases, so does the importance of their correctness and reliability. Furthermore, in the recent years, months there are multiple type
+checker realeases in the open source community, such as pyrefly, zuban, and ty. These new type checkers are claiming that they are faster than
+type checkers currently used in industry, but we are not yet sure, if they are as reliably give correct reports and also there has not been a
+comparison in the field of static type checkers. Recently, the open-source community has introduced several high-performance type checkers,
+including pyrefly, zuban, and ty. While these tools claim to offer superior execution speeds compared to industry standards, their
+correctness and reliability remain unverified. Crucially, there is currently no comprehensive framework benchmarking these emerging tools
+against established static analyzers. Furthermore, there is a distinct lack of research evaluating their behavior on newly generated code
+examples specifically designed to identify false positive reports.
+
+When developers trust a type checker to validate their code, they expect the tool to accurately identify genuine type errors while not 
+flagging correct code as erroneous. A type checker that produces too many false positives can lead to developer frustration and eventual
+abandonment of the tool. Developers may start ignoring warnings or adding unnecessary type annotations to silence the checker,
+which defeats the purpose of static analysis. On the other hand, a type checker that produces false negatives provides a false sense of
+security. Developers might believe their code is type-safe when it actually contains bugs that could manifest at runtime and potentially 
+cause system failures in production environments.
+
+The Python type system has evolved considerably since the introduction of type hints in PEP 484. New features such as protocols, type guards,
+variadic generics, and the @member decorator for enums have been added to the language. Each new feature introduces additional complexity that
+type checkers must handle correctly. As demonstrated in the examples provided in the introduction, even mature type checkers like mypy can 
+struggle with these newer constructs. This ongoing evolution of the type system creates a continuous need for testing and validation of type
+checker implementations.
+
+Currently, the process of finding bugs in type checkers relies heavily on user-reported issues and manual test case creation by the development
+teams. This approach has limitations because it depends on users encountering edge cases during their regular development work and taking the
+time to report them. Many bugs in type checkers may go undetected for extended periods simply because no one has written code that triggers them.
+An automated approach to generating test cases that can expose false positives and false negatives would complement the existing testing
+strategies and help identify issues before users encounter them. Furthermore, the diversity of type checkers available for Python means that
+the same code can produce different results across different tools. A program that passes mypy's checks might fail pyright's checks, or vice
+versa. Understanding these differences and identifying cases where type checkers disagree can help both developers choose the right tool for 
+their needs and type checker maintainers improve consistency across the ecosystem.
+
+This research is motivated by the need to systematically improve the quality of Python type checkers through automated testing. By developing
+a tool that can generate test cases capable of triggering false reports, we aim to reduce the burden on type checker development teams and
+ultimately improve the reliability of static type analysis in Python. The practical outcome of this work will be a more robust type checking
+ecosystem that developers can trust to accurately validate their code.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Introduction
 
 According to StackOverflow, IEEE, and other surveys Python has became the most popular programming language by 2025. We can see that Python programming language
@@ -73,29 +155,39 @@ generates new, uncovered examples that are able to trigger type checkers to prov
 
 ## Motivation
 
-The adoption of static type checkers in Python has grown significantly over the past years. Major technology companies and open-source projects have integrated type checking into their development 
-workflows to catch bugs early in the development cycle. Tools like mypy, pyright, pyre, and pytype have become essential components in many Python projects' continuous integration pipelines.
-As the reliance on these tools increases, so does the importance of their correctness and reliability.
+The adoption of static type checkers in Python has grown significantly over the past years. Major technology companies and open-source
+projects have integrated type checking into their development workflows to catch bugs early in the development cycle. Tools like mypy,
+pyright, pyre, and pytype have become essential components in many Python projects' continuous integration pipelines.As the reliance on these 
+tools increases, so does the importance of their correctness and reliability.
 
-When developers trust a type checker to validate their code, they expect the tool to accurately identify genuine type errors while not flagging correct code as erroneous. A type checker that produces
-too many false positives can lead to developer frustration and eventual abandonment of the tool. Developers may start ignoring warnings or adding unnecessary type annotations to silence the checker,
-which defeats the purpose of static analysis. On the other hand, a type checker that produces false negatives provides a false sense of security. Developers might believe their code is type-safe when
-it actually contains bugs that could manifest at runtime and potentially cause system failures in production environments.
+When developers trust a type checker to validate their code, they expect the tool to accurately identify genuine type errors while not 
+flagging correct code as erroneous. A type checker that produces too many false positives can lead to developer frustration and eventual
+abandonment of the tool. Developers may start ignoring warnings or adding unnecessary type annotations to silence the checker,
+which defeats the purpose of static analysis. On the other hand, a type checker that produces false negatives provides a false sense of
+security. Developers might believe their code is type-safe when it actually contains bugs that could manifest at runtime and potentially 
+cause system failures in production environments.
 
-The Python type system has evolved considerably since the introduction of type hints in PEP 484. New features such as protocols, type guards, variadic generics, and the @member decorator for enums have
-been added to the language. Each new feature introduces additional complexity that type checkers must handle correctly. As demonstrated in the examples provided in the introduction, even mature type checkers
-like mypy can struggle with these newer constructs. This ongoing evolution of the type system creates a continuous need for testing and validation of type checker implementations.
+The Python type system has evolved considerably since the introduction of type hints in PEP 484. New features such as protocols, type guards,
+variadic generics, and the @member decorator for enums have been added to the language. Each new feature introduces additional complexity that
+type checkers must handle correctly. As demonstrated in the examples provided in the introduction, even mature type checkers like mypy can 
+struggle with these newer constructs. This ongoing evolution of the type system creates a continuous need for testing and validation of type
+checker implementations.
 
-Currently, the process of finding bugs in type checkers relies heavily on user-reported issues and manual test case creation by the development teams. This approach has limitations because it depends on users
-encountering edge cases during their regular development work and taking the time to report them. Many bugs in type checkers may go undetected for extended periods simply because no one has written code that
-triggers them. An automated approach to generating test cases that can expose false positives and false negatives would complement the existing testing strategies and help identify issues before users encounter them.
-Furthermore, the diversity of type checkers available for Python means that the same code can produce different results across different tools. A program that passes mypy's checks might fail pyright's checks,
-or vice versa. Understanding these differences and identifying cases where type checkers disagree can help both developers choose the right tool for their needs and type checker maintainers improve consistency
-across the ecosystem.
+Currently, the process of finding bugs in type checkers relies heavily on user-reported issues and manual test case creation by the development
+teams. This approach has limitations because it depends on users encountering edge cases during their regular development work and taking the
+time to report them. Many bugs in type checkers may go undetected for extended periods simply because no one has written code that triggers them.
+An automated approach to generating test cases that can expose false positives and false negatives would complement the existing testing
+strategies and help identify issues before users encounter them. Furthermore, the diversity of type checkers available for Python means that
+the same code can produce different results across different tools. A program that passes mypy's checks might fail pyright's checks, or vice
+versa. Understanding these differences and identifying cases where type checkers disagree can help both developers choose the right tool for 
+their needs and type checker maintainers improve consistency across the ecosystem.
 
 This research is motivated by the need to systematically improve the quality of Python type checkers through automated testing. By developing a tool that can generate test cases capable of triggering false reports,
 we aim to reduce the burden on type checker development teams and ultimately improve the reliability of static type analysis in Python. The practical outcome of this work will be a more robust type checking
 ecosystem that developers can trust to accurately validate their code.
+
+## 
+
 
 ## Research Goals
 
