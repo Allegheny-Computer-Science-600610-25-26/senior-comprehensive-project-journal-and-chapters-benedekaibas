@@ -1,5 +1,5 @@
 ---
-title: "Chapter One of My Senior Thesis"
+title: "An Empirical Study on Static Analyzer Toolsets to Reduce False Positives, False Negatives in Python Type Checkers"
 date: "2025-10-11"
 ---
 
@@ -86,15 +86,18 @@ The Python type system has evolved considerably since the introduction of type h
 been added to the language. Each new feature introduces additional complexity that type checkers must handle correctly. As demonstrated in the examples provided in the introduction, even mature type checkers
 like mypy can struggle with these newer constructs. This ongoing evolution of the type system creates a continuous need for testing and validation of type checker implementations.
 
-Currently, the process of finding bugs in type checkers relies heavily on user-reported issues and manual test case creation by the development teams. This approach has limitations because it depends on users encountering edge cases during their regular development work and taking the time to report them. Many bugs in type checkers may go undetected for extended periods simply because no one has written code that triggers them. An automated approach to generating test cases that can expose false positives and false negatives would complement the existing testing strategies and help identify issues before users encounter them.
-Furthermore, the diversity of type checkers available for Python means that the same code can produce different results across different tools. A program that passes mypy's checks might fail pyright's checks, or vice versa. Understanding these differences and identifying cases where type checkers disagree can help both developers choose the right tool for their needs and type checker maintainers improve consistency across the ecosystem.
-This research is motivated by the need to systematically improve the quality of Python type checkers through automated testing. By developing a tool that can generate test cases capable of triggering false reports, we aim to reduce the burden on type checker development teams and ultimately improve the reliability of static type analysis in Python. The practical outcome of this work will be a more robust type checking ecosystem that developers can trust to accurately validate their code.
+Currently, the process of finding bugs in type checkers relies heavily on user-reported issues and manual test case creation by the development teams. This approach has limitations because it depends on users
+encountering edge cases during their regular development work and taking the time to report them. Many bugs in type checkers may go undetected for extended periods simply because no one has written code that
+triggers them. An automated approach to generating test cases that can expose false positives and false negatives would complement the existing testing strategies and help identify issues before users encounter them.
+Furthermore, the diversity of type checkers available for Python means that the same code can produce different results across different tools. A program that passes mypy's checks might fail pyright's checks,
+or vice versa. Understanding these differences and identifying cases where type checkers disagree can help both developers choose the right tool for their needs and type checker maintainers improve consistency
+across the ecosystem.
+
+This research is motivated by the need to systematically improve the quality of Python type checkers through automated testing. By developing a tool that can generate test cases capable of triggering false reports,
+we aim to reduce the burden on type checker development teams and ultimately improve the reliability of static type analysis in Python. The practical outcome of this work will be a more robust type checking
+ecosystem that developers can trust to accurately validate their code.
 
 ## Research Goals
 
-My research paper aims to provide a tool that can automatically generate code examples that would force the type checkers to report false negatives, false positives, and valid reports.
-Then it would be able to determine which type checkers were correct. Based on this information my research paper will evaluate the different type checkers, suggest what changes would
-be needed for type checkers, and provide code examples that are introducing new cases where type checkers' reports are false.
-
-
-
+Goal of my research is to include statistical data in this paper on how famous type checkers behaved on the automatically generated code examples that were created by the automated tool called pytifex that supports the
+purpose of my research. By doing this empirical stdu
