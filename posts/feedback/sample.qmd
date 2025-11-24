@@ -1,9 +1,37 @@
 ---
-title: "Sample feedback post"
-date: "2025-08-29"
+title: "Feedback for Two of My Classmates"
+date: "2025-11-24"
 ---
 
 ![Image post thumbnail](thumbnail.jpg)
 
-This is a sample post in which students provide feedback on process or other prompts
-provided as part of class activities or assignments.
+## Short Feedback On My Current Work
+
+As we approach the end of the semester I completed my chapter one and I am right now working on my chapter 2 for the senior comprehensive project.
+I am also developing my automated code generator tool called pytifex. This tool will support my research paper which is an Empirical Study
+on Static Analyzer Toolsets to Reduce False Positives, False Negatives in Python Type Checkers. Pytifex automatically generates code examples based
+on closed issue templates from well-known type checkers. Then it regenerates those examples in a way that would force type checkers to report false
+feedbacks.
+
+I am right now focusing on my chapter 2 and fine tuning my tool. For the rest of the semester I will finish my chapter 2 and also make progress in pytifex,
+so I can start making test cases that would support my research.
+
+## Feedback For Evan's Chapter One
+
+Evan's chapter one was pretty solid in terms of detailed explanation, output of his tool, correct styling, and carefully implemented grammar. Just like my
+chapter one was before professor Kapfhammer reviewed it, I felt the same with Evan's chapter one, that it was not a research paper phrased introduction, but more
+like a blog post that was very technical detailed, but I still did not feel the tone of a formal research paper.
+
+However, his senior comprehensive project is more focused on delivering a tool than implementing a research paper, so in his case it might be good to write his chapters
+in the format he has it currently. Also including pictures from various websites do not really give the feeling of a research paper, so I suggested him to change that for
+his chapter one.
+
+## Feedback For Keven's Chapter One
+
+Keven's project is pretty interesting as well. I recommended Keven to remove place holders, and content not related to his final research paper. Also his title is not updated
+on his paper yet. His `List of Figures` was orgranized like a `Table of Contents`, so that was a styling issue. His description of chapter one was solid and I could understand
+his idea, what the project is about, and what is his strategy to finish his tool. I recommended him to do more styling and remove unused content, so with that the LaTeX format
+will be correctly displaying his table of contents, list of figures, chapter numbers.
+
+On the last node, I suggested him to include more research papers and during our discussion I provided him one research paper that I think would perfectly fit into his comprehensive
+project.
