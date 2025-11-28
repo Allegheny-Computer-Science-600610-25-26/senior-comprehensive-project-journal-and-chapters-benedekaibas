@@ -82,9 +82,10 @@ examples derived from closed issue reports from type checkers. Specifically, cur
 previously submitted issues to refine—or mutate—them into new test cases designed to trigger false reports.
 
 Pytifex addresses this void by automating the generation of complex, high-level test cases derived from the history of resolved bugs. The tool
-operates by mining closed GitHub issues to extract code snippets that previously triggered false reports (false positives). While these
-specific issues have been patched, Pytifex utilizes them as high-quality "seed" examples. It systematically refines—or mutates—these seeds to
-create new, adversarial test cases that retain the structural complexity of the original bug but introduce novel variations.
+operates by mining closed GitHub issues to extract code snippets that previously triggered false reports (false positives & false negatives).
+While these specific issues have been patched, Pytifex utilizes them as high-quality "seed" examples. It systematically refines—or mutates—
+these seeds to create new, adversarial test cases that retain the structural complexity of the original bug but introduce novel variations capable
+of triggering false reports in the latest stable versions of established type checkers.
 
 ## Contributions
 
