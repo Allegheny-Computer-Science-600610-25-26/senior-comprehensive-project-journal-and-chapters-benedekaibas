@@ -200,7 +200,10 @@ Python type checkers.
 
 Despite the success of random generation in static languages (Csmith) and formal modeling in Python (ACL2s), both approaches largely ignore
 the rich history of human-reported defects. These methods generate tests from theoretical models, which often results in code that is
-syntactically valid but semantically dissimilar to the patterns developers actually write. Currently, there is no existing literature that
-leverages the repository of closed GitHub issues to systematically generate regression tests for Python type checkers. By failing to utilize
-this historical data, current methods miss the opportunity to learn from the specific "blind spots" that have previously confused type
+syntactically valid but semantically dissimilar to the patterns developers actually write. While mutation testing is a well-established
+technique for assessing test suite quality in general software engineering [@jia2010analysis], its application to the generators of compiler
+tests—specifically using historical bug reports as seeds—remains unexplored in the Python ecosystem. Currently, there is no existing literature
+that leverages the repository of closed GitHub issues to systematically generate regression tests for Python type checkers. By failing to
+utilize this historical data, current methods miss the opportunity to learn from the specific "blind spots" that have previously confused type
 checkers, leaving a significant gap for data-driven, mution-based testing strategies.
+
