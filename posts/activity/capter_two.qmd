@@ -3,3 +3,84 @@ title: "Chapter Two of My Senior Thesis"
 date: "2025-10-11"
 ---
 
+## Understanding the State of Python Static Analysis: What We Know, What’s Missing, and Why It Matters
+
+Python’s rise as one of the world’s most popular programming languages has come with a major trade-off: while its dynamic typing model
+accelerates development, it also opens the door to subtle and costly type-related defects. Recent empirical studies show just how impactful
+these bugs can be—and why the tools we rely on for static analysis are still far from perfect.
+
+Chapter Two of my thesis, An Empirical Study on Static Analyzer Toolsets to Reduce False Positives and False Negatives in Python Type Checkers,
+explores this landscape in depth. Below is an accessible walkthrough of the core ideas, why current approaches fall short, and where new research
+is urgently needed.
+
+## Type Errors in Python Are More Serious Than Most Developers Think
+
+Python is a great language because it’s flexible and easy to use—but that flexibility comes with hidden problems. Recent studies show that
+mistakes related to types (like mixing up strings and numbers) cause way more bugs than most people realize.
+
+For example, Khan et al. found that 15% of all bug-fixes in real Python projects could have been avoided if developers had used a static type
+checker like Mypy. In simple terms, for every seven bugs that developers fix, one of them happened because Python didn’t check types early enough.
+
+Another study by Oh and Oh looked at how long it takes developers to actually fix type-related bugs. Some are solved quickly, but a surprising
+number—about 30%—stay unfixed for more than a month. On average, type errors take 82 days (almost three months!) to resolve. These aren’t easy
+mistakes. They usually involve complicated logic, confusing variable reuse, or tricky parts of the program where types change in ways that are
+hard to follow.
+
+All of this shows one clear thing:
+Python teams need better automated tools that can catch type problems early, before they turn into long-lasting, hard-to-find bugs in real
+codebases.
+
+## The Research Gap: Where Are the Data-Driven Fuzzers?
+
+This is where the current research ends — and where my thesis begins.
+
+All existing approaches share one major limitation:
+
+**They ignore the huge history of real, developer-reported bugs.**
+
+Python type checkers like **Mypy**, **Pyright**, **Pyrefly**, **Zuban**, and **Ty** all maintain active GitHub repositories with *thousands* of
+closed issues.
+Each issue represents a real bug that once confused the checker.
+
+Yet no current testing system uses these historical bugs to generate new tests.
+
+There are **no**:
+
+- mutation-based fuzzers
+- regression test generators
+- automated test synthesizers
+- data-driven randomizers
+
+that learn from past failures to discover future ones.
+
+This is a missed opportunity. These GitHub issues capture exactly the kinds of weird edge cases that often break type checkers, such as:
+
+- unusual or surprising variable reuse
+- complex nested inference
+- unannotated dynamic code patterns
+- ambiguous or tricky overloads
+- hard-to-predict interactions with third-party libraries
+
+A fuzzing engine built around real historical bugs could aggressively target the blind spots of modern type checkers — and help reduce both
+**false positives** and **false negatives** in ways current methods cannot.
+
+---
+
+## Why This Matters
+
+Python is now central to machine learning, data science, prototyping, automation, and research. As Python projects grow, developers depend more
+and more on static analysis to help maintain correctness.
+
+But if our testing methods rely only on theory or random generation — and ignore decades of practical bug history — then future Python type
+checkers will keep repeating the same mistakes.
+
+A **data-driven, mutation-based approach** that learns from real past failures is not just academic. It is a practical, necessary step toward:
+
+- preventing long-lived type bugs
+- increasing developer trust in static analysis tools
+- reducing false alarms that waste developer time
+- improving reliability in real-world Python codebases
+- bringing Python closer to the safety of statically typed languages
+
+This is the gap my research aims to fill.
+
