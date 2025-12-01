@@ -189,4 +189,18 @@ The seminal work by Yang et al. on Csmith [@yang2011finding] established the eff
 multiple compilers (e.g., GCC and LLVM) to detect discrepancies. While Csmith successfully identified hundreds of bugs in C compilers, its
 techniques rely on the rigid, static constraints of the C language, which do not translate directly to dynamic environments.
 
+In the context of Python, applying these techniques is significantly more complex due to the language's dynamic nature and the lack of a
+formal compile-time specification. Recent research has begun to address this by formalizing the Python type system to enable automated test
+generation. Xifaras et al. [@xifaras2025enumerative] proposed an approach using the ACL2s theorem prover to model Python’s typing rules. Their
+work focuses on formal verification, creating a mathematical model of valid Python types to generate "tricky" code examples that specifically
+stress-test the inference engines of tools like Mypy and Pytype. This represents the current state-of-the-art in model-based test generation for
+Python type checkers.
 
+### The Research Gap: Data-Driven Fuzzing
+
+Despite the success of random generation in static languages (Csmith) and formal modeling in Python (ACL2s), both approaches largely ignore
+the rich history of human-reported defects. These methods generate tests from theoretical models, which often results in code that is
+syntactically valid but semantically dissimilar to the patterns developers actually write. Currently, there is no existing literature that
+leverages the repository of closed GitHub issues to systematically generate regression tests for Python type checkers. By failing to utilize
+this historical data, current methods miss the opportunity to learn from the specific "blind spots" that have previously confused type
+checkers, leaving a significant gap for data-driven, mution-based testing strategies.
