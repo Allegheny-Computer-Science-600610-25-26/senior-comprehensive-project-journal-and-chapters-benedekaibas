@@ -94,3 +94,4 @@ operates by mining closed GitHub issues to extract code snippets that previously
 While these specific issues have been patched, Pytifex utilizes them as high-quality "seed" examples. It systematically refines—or mutates—
 these seeds to create new, adversarial test cases that retain the structural complexity of the original bug, but introduce novel variations
 capable of triggering false reports in the latest stable versions of established type checkers.
+
