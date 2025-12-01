@@ -181,4 +181,12 @@ type checking feel as instant as linting or formatting, integrating tightly into
 low-latency feedback, it is still an open question whether it can handle messy, legacy typing behaviors as strictly and reliably as the other
 well tested Python type checkers.
 
+### Automated Fuzzing and Test Generation
+
+The validation of compilers and static analyzers has historically relied on fuzzing—the automated generation of random test cases to uncover
+edge cases that manual testing often misses. In the domain of statically typed languages, this technique has reached a high degree of maturity.
+The seminal work by Yang et al. on Csmith [@yang2011finding] established the efficacy of differential testing, where a random program is fed to
+multiple compilers (e.g., GCC and LLVM) to detect discrepancies. While Csmith successfully identified hundreds of bugs in C compilers, its
+techniques rely on the rigid, static constraints of the C language, which do not translate directly to dynamic environments.
+
 
