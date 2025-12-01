@@ -1,8 +1,3 @@
----
-title: "An Empirical Study on Static Analyzer Toolsets to Reduce False Positives, False Negatives in Python Type Checkers"
-date: "2025-10-11"
----
-
 ## Related Work
 
 ### Empirical Analysis of Python Type Errors
