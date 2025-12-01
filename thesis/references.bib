@@ -17,36 +17,10 @@
   year      = {2022},
   publisher = {Association for Computing Machinery},
   address   = {New York, NY, USA},
-  doi       = {10.1145/3540250.3549130},
-  url       = {https://doi.org/10.1145/3540250.3549130},
-  isbn      = {978-1-4503-9413-0}
+  doi       = {10.1145/3540250.3549130}
 }
 
 % --- Introduction ---
-
-@article{plaat1996research,
-  title={Research, re: search and re-search},
-  author={Plaat, Aske},
-  journal={ICGA Journal},
-  volume={19},
-  number={3},
-  pages={186--186},
-  year={1996},
-  publisher={IOS Press}
-}
-
-@inproceedings{oh2022pyter,
-  author    = {Oh, Wonho and Oh, Hakjoo},
-  title     = {PyTER: Effective Program Repair for Python Type Errors},
-  booktitle = {Proceedings of the 30th ACM Joint European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE '22)},
-  pages     = {922--934},
-  year      = {2022},
-  publisher = {Association for Computing Machinery},
-  address   = {New York, NY, USA},
-  doi       = {10.1145/3540250.3549130},
-  url       = {https://doi.org/10.1145/3540250.3549130},
-  isbn      = {978-1-4503-9413-0}
-}
 
 @article{khan2022empirical,
   author  = {Khan, Faizan and Chen, Bin and Varro, Daniel and McIntosh, Shane},
@@ -85,7 +59,6 @@
   url    = {https://www.tiobe.com/tiobe-index/},
   note   = {Accessed: 2025-11-24}
 }
-
 
 % --- Motivation ---
 
@@ -138,6 +111,15 @@
   year={2014},
   publisher={ACM},
   doi={10.1145/2661105.2661111}
+}
+
+@manual{python_typing_spec,
+  title = {Python Typing Specification: Meaning of Annotations},
+  author = {{Python Typing Council}},
+  organization = {Python Software Foundation},
+  year = {2025},
+  url = {https://typing.python.org/en/latest/spec/annotations.html},
+  note = {Accessed: 2025-11-24}
 }
 
 % --- Python PEPs ---
@@ -207,8 +189,9 @@
 % --- New/Emerging Type Checkers ---
 
 @software{pyrefly_repo,
-  title = {Pyrefly: A Static Type Checker},
-  url = {https://github.com/example/pyrefly},
+  author = {{Meta Platforms, Inc.}},
+  title = {Pyrefly: A High-Performance Python Type Checker},
+  url = {https://github.com/facebook/pyrefly},
   year = {2025},
   note = {Accessed: 2025-11-24}
 }
@@ -238,7 +221,7 @@
   type={Python Enhancement Proposal}
 }
 
-% --- Current State of the Art
+% --- Current State of the Art ---
 
 @inproceedings{xifaras2025enumerative,
   title={An Enumerative Embedding of the Python Type System in ACL2s},
@@ -247,4 +230,43 @@
   year={2025},
   note={arXiv:2507.19015},
   url={https://arxiv.org/abs/2507.19015}
+}
+
+@inproceedings{yang2011finding,
+  title={Finding and understanding bugs in C compilers},
+  author={Yang, Xuejun and Chen, Yang and Eide, Eric and Regehr, John},
+  booktitle={Proceedings of the 32nd ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI)},
+  pages={283--294},
+  year={2011},
+  publisher={ACM},
+  doi={10.1145/1993498.1993532}
+}
+
+@inproceedings{oh2024towards,
+  author = {Oh, Wonseok and Oh, Hakjoo},
+  title = {Towards Effective Static Type-Error Detection for Python},
+  booktitle = {Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering (ASE '24)},
+  year = {2024},
+  publisher = {ACM},
+  address = {Sacramento, CA, USA},
+  url = {https://doi.org/10.1145/3691620}
+}
+
+@inproceedings{chow2024pyty,
+  author = {Chow, Yiu Wai and Di Grazia, Luca and Pradel, Michael},
+  title = {PyTy: Repairing Static Type Errors in Python},
+  booktitle = {Proceedings of the 46th International Conference on Software Engineering (ICSE '24)},
+  year = {2024},
+  publisher = {ACM},
+  doi = {10.1145/3597503.3639184}
+}
+
+@inproceedings{rakamnouykit2020reality,
+  author = {Rak-amnouykit, Ingkarat and McCamant, Stephen and Ernst, Michael D.},
+  title = {The Python Type System: A Reality Check},
+  booktitle = {Proceedings of the 2020 ACM SIGPLAN International Symposium on New Ideas, New Paradigms, and Reflections on Programming and Software (Onward! '20)},
+  year = {2020},
+  pages = {1--16},
+  publisher = {ACM},
+  doi = {10.1145/3426428.3426918}
 }
