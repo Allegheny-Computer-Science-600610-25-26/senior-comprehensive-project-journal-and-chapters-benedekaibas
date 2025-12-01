@@ -37,6 +37,14 @@ additional complexity that type checkers must handle correctly. As demonstrated 
 checkers like mypy can struggle with these newer constructs. This ongoing evolution of the type system creates a continuous need for testing
 and validation of type checker implementations.
 
+Furthermore, the dynamic nature of Python presents a fundamental theoretical challenge for static analysis: the trade-off between soundness
+and completeness. In type theory, a sound system guarantees that no ill-typed program is accepted (no false negatives), while a complete
+system ensures that no well-typed program is rejected (no false positives). Due to Python's highly dynamic features—such as runtime class
+modification, eval, and the extensive use of the Any type—achieving perfect soundness is computationally undecidable [@siek2015refined].
+Consequently, practical type checkers must rely on the principles of Gradual Typing, which intentionally relaxes soundness guarantees to
+maintain usability [@vitousek2014design]. This inherent compromise creates a fragile boundary where inconsistencies and "soundness holes"
+frequently emerge, further necessitating the need for rigorous automated testing.
+
 Currently, the process of finding bugs in type checkers relies heavily on user-reported issues and manual test case creation by the development
 teams. This approach has limitations because it depends on users encountering edge cases during their regular development work and taking the
 time to report them. Many bugs in type checkers may go undetected for extended periods simply because no one has written code that triggers
@@ -50,7 +58,7 @@ This research is motivated by the need to systematically improve the quality of 
 By developing a tool that can generate test cases capable of triggering false reports, we aim to reduce the burden on type checker development
 teams and ultimately improve the reliability of static type analysis in Python.
 
-## The Importance of Using Automated Test Generation
+### The Importance of Using Automated Test Generation
 
 According to Oh and Oh [@oh2022pyter], the timeline for resolving type errors varies significantly: while 31.4% of reported errors are patched
 within a single day, 29.4% require more than a month to resolve. Furthermore, bugs included in the PyTER benchmark [@oh2022pyter] persisted for
@@ -62,7 +70,7 @@ frequently introduces new syntax and features [@pep602]. To maintain effective t
 updated concurrently with these language changes. Reliance on manual testing and user reports following a new Python release is inherently
 reactive and time-consuming, preventing the ecosystem from adopting a proactive stance toward type safety.
 
-## Current State of the Art
+### Current State of the Art
 
 Current research into Python static typing is diverse, encompassing empirical studies on type checkers usage [@khan2022empirical], comparative
 analyses of tool performance [@oh2024towards], and the application of fuzzing techniques for bug detection [@xifaras2025enumerative]. While
@@ -75,7 +83,7 @@ projects are increasingly integrating static typing [@distefano2019scaling] to e
 codebases. This growing demand has catalyzed the development of numerous new type checkers, yet the rigor of their validation remains an open
 question.
 
-### Addressing The Gap
+#### Addressing The Gap
 
 Despite advancements in static analysis, there is currently no research or automated tooling that systematically generates high-level code
 examples derived from closed issue reports from type checkers. Specifically, current researches have not targeted the automated ingestion of
@@ -84,11 +92,7 @@ previously submitted issues to refine—or mutate—them into new test cases des
 Pytifex addresses this void by automating the generation of complex, high-level test cases derived from the history of resolved bugs. The tool
 operates by mining closed GitHub issues to extract code snippets that previously triggered false reports (false positives & false negatives).
 While these specific issues have been patched, Pytifex utilizes them as high-quality "seed" examples. It systematically refines—or mutates—
-these seeds to create new, adversarial test cases that retain the structural complexity of the original bug but introduce novel variations capable
-of triggering false reports in the latest stable versions of established type checkers.
+these seeds to create new, adversarial test cases that retain the structural complexity of the original bug, but introduce novel variations
+capable of triggering false reports in the latest stable versions of established type checkers.
 
-## Contributions
-
-This research builds upon several researches and extending existing researches while also using already existing agent framework.
-
-
+## Related Work
