@@ -32,7 +32,7 @@ sense of security. Developers might believe their code is type-safe when it actu
 potentially cause system failures in production environments [3].
 
 The Python type system has evolved considerably since the introduction of type hints in PEP 484 [14]. New features such as protocols, type
-guards, variadic generics, and the @member decorator for enums have been added to the language [15, 16, 17]. Each new feature introduces
+guards, variadic generics, and the `@member` decorator for enums have been added to the language [15, 16, 17]. Each new feature introduces
 additional complexity that type checkers must handle correctly. As demonstrated in the examples provided in the introduction, even mature type
 checkers like mypy can struggle with these newer constructs. This ongoing evolution of the type system creates a continuous need for testing
 and validation of type checker implementations.
