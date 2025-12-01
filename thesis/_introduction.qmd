@@ -96,3 +96,35 @@ these seeds to create new, adversarial test cases that retain the structural com
 capable of triggering false reports in the latest stable versions of established type checkers.
 
 ## Related Work
+
+### Empirical Analysis of Python Type Errors
+
+The prevalence and impact of type-related errors in Python have been the subject of several recent empirical studies, highlighting the
+significant role they place on software maintenance. Research by Khan et al. [@khan2022empirical] provides a comprehensive analysis of
+defects in Python projects, revealing the potential impact of static analysis on code quality. Their study found that approximately 15% of
+corrective defects (and 11% of all defects) in Python projects could likely have been avoided by using a static type checker. This statistic
+underscores the inherent risks of Python's dynamic typing discipline, where preventable type inconsistencies often remain dormant until
+execution.
+
+Furthermore, the process of resolving these errors is far from trivial. Oh and Oh [@oh2022pyter] investigated the lifecycle of type defects
+and observed that manual detection and repair are resource-intensive tasks. Their analysis of the "PyTER" benchmark showed that while roughly
+one-third of type errors are patched within a day, nearly 30% persist for over a month, with the average resolution time extending to 82 days.
+This variance suggests that while some type errors are superficial, a significant portion involve complex logic that developers struggle to
+diagnose and fix promptly.
+
+These findings collectively confirm the high cost of type errors in the software development lifecycle. The data indicates that reliance on
+manual testing and reactive bug fixing is insufficient to keep pace with the volume of type defects. Consequently, there is a critical need
+for reliable, automated static analysis tools capable of identifying these issues early in the development process, before they turn into
+costly runtime failures or long-standing technical debt.
+
+### The Landscape of Python Static Analysis
+
+The classification of programming languages into static and dynamic typing paradigms fundamentally dictates how correctness is verified. In
+statically typed languages (e.g., C++, C), variable types are resolved at compile-time, allowing the compiler to enforce strict constraints
+and guarantee that certain classes of errors are absent before execution. Conversely, Python employs a dynamic typing discipline where type
+checking is deferred until runtime. This approach offers significant advantages in developer velocity, enabling rapid prototyping, concise
+syntax, and high flexibility through features like runtime reflection and metaprogramming.
+
+### Challenges of Static Analysis in Dynamic Languages
+
+
