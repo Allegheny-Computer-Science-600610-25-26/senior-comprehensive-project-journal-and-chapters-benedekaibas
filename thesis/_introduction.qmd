@@ -120,11 +120,30 @@ costly runtime failures or long-standing technical debt.
 ### The Landscape of Python Static Analysis
 
 The classification of programming languages into static and dynamic typing paradigms fundamentally dictates how correctness is verified. In
-statically typed languages (e.g., C++, C), variable types are resolved at compile-time, allowing the compiler to enforce strict constraints
+statically typed languages (e.g., C++, C, Java), variable types are resolved at compile-time, allowing the compiler to enforce strict constraints
 and guarantee that certain classes of errors are absent before execution. Conversely, Python employs a dynamic typing discipline where type
 checking is deferred until runtime. This approach offers significant advantages in developer velocity, enabling rapid prototyping, concise
 syntax, and high flexibility through features like runtime reflection and metaprogramming.
 
 ### Challenges of Static Analysis in Dynamic Languages
 
+Despite these ergonomic benefits, dynamic typing introduces severe challenges for static analysis. The primary disadvantage is the lack of
+explicit type information, which forces static analyzers to rely on complex inference algorithms that are often heuristic rather than provable.
+
+Specifically, Python's dynamic features makes static analysis harder for the Python programming language:
+
+- **Undecidability**: Features such as `eval()`, `getattr()`, and dynamic class creation allow code to modify its own structure at runtime.
+  Accurately predicting the types in such programs is statically undecidable, meaning a tool cannot guarantee correctness without executing
+  the code.
+
+- **Soundness Gaps**: To remain usable, Python type checkers must adopt gradual typing [@siek2015refined]. As defined by the official Python
+  Typing Specification, unannotated parameters and variables are often implicitly treated as the Any type, effectively disabling type checking
+  for those regions to prevent false positives [@python_typing_spec]. This creates a trade-off where the checker is neither fully sound
+  (it misses true errors in unannotated code) nor fully complete (it may flag valid dynamic patterns as erroneous).
+
+- **Fragile Inference**: In the absence of annotations, inference engines often struggle with heterogeneous collections and variable recycling.
+  For instance, initializing a list with mixed types (e.g., `data = [1, "two"]`) forces the checker to choose a common base type. Tools like Mypy
+  typically infer `List[object]`, which technically captures both elements but causes false positives when the developer attempts valid operations
+  (like string manipulation) on the items. Similarly, reusing a variable name for different types (`x = 10; x = "text"`) is valid Python but
+  frequently confuses analyzers that "lock" the inferred type to the first assignment, flagging the second as an error.
 
