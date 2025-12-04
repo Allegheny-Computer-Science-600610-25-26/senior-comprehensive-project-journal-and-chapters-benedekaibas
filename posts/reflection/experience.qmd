@@ -1,0 +1,19 @@
+---
+title: "Reflect on your experiences preparing for and giving your presentation"
+date: "2025-12-04"
+---
+
+![Image post thumbnail](thumbnail.jpg)
+
+## What is the Presentation About?
+
+For our senior comprehensive project it is required for us to give a presentation about our prototype. This presentation serves as a proof that
+we know the fundamental of our topic, our chosen research and/or tool is feasible, and that we are able to identify the place of our project in
+today's world computer science, software engineering. The presentation is also good for preparing us giving the final presentation at the end of
+next semester when we have to present our final senior comprehensive project.
+
+Overall, we can say that this presentation is a preparation for the upcoming final presentation next semester and also a "test" to show that our
+senior comp is feasible, we started working on it, and we can ship a prototype which serves as a small, restricted version of our final tool
+and/or research.
+
+## Preparing for My Presentation
