@@ -1,6 +1,6 @@
 ## Related Work
 
-### Empirical Analysis of Python Type Errors
+## Empirical Analysis of Python Type Errors
 
 The prevalence and impact of type-related errors in Python have been the subject of several recent empirical studies, highlighting the
 significant role they place on software maintenance. Research by Khan et al. [@khan2022empirical] provides a comprehensive analysis of
@@ -20,7 +20,7 @@ manual testing and reactive bug fixing is insufficient to keep pace with the vol
 for reliable, automated static analysis tools capable of identifying these issues early in the development process, before they turn into
 costly runtime failures or long-standing technical debt.
 
-### The Landscape of Python Static Analysis
+## The Landscape of Python Static Analysis
 
 The classification of programming languages into static and dynamic typing paradigms fundamentally dictates how correctness is verified. In
 statically typed languages (e.g., C++, C, Java), variable types are resolved at compile-time, allowing the compiler to enforce strict constraints
@@ -28,7 +28,7 @@ and guarantee that certain classes of errors are absent before execution. Conver
 checking is deferred until runtime. This approach offers significant advantages in developer velocity, enabling rapid prototyping, concise
 syntax, and high flexibility through features like runtime reflection and metaprogramming.
 
-### Challenges of Static Analysis in Dynamic Languages
+## Challenges of Static Analysis in Dynamic Languages
 
 Despite these ergonomic benefits, dynamic typing introduces severe challenges for static analysis. The primary disadvantage is the lack of
 explicit type information, which forces static analyzers to rely on complex inference algorithms that are often heuristic rather than provable.
@@ -50,18 +50,18 @@ Specifically, Python's dynamic features makes static analysis harder for the Pyt
   operations (like string manipulation) on the items. Similarly, reusing a variable name for different types (`x = 10; x = "text"`) is valid
   Python, but frequently confuses analyzers that "lock" the inferred type to the first assignment, flagging the second as an error.
 
-### Established and Emerging Tools
+## Established and Emerging Tools
 
 To mitigate these risks, the Python ecosystem has adopted a range of static type checkers. These tools vary significantly in their architecture,
 performance, and adherence to soundness guarantees.
 
-#### Mypy
+### Mypy
 
 Mypy As the reference implementation for Python static typing (PEP 484), Mypy is the most widely adopted tool in the industry. It introduced
 the concept of gradual typing to Python, allowing teams to migrate codebases incrementally. While Mypy is robust and features a vast ecosystem
 of plugin supports (e.g., for Django or NumPy), its performance can be a bottleneck in large monolithic repositories.
 
-#### Pyrefly
+### Pyrefly
 
 Pyrefly Developed by Meta, Pyrefly is a high-performance, Rust-based type checker designed to handle the scale of massive "monorepos." Its
 primary goal is to provide instant feedback to developers, even in projects with millions of lines of code. By focusing its analysis only on
@@ -69,14 +69,14 @@ the specific parts of the codebase affected by a change—rather than re-checkin
 common in older tools like Mypy. This makes it exceptionally well-suited for interactive use within IDEs, where speed and responsiveness are
 critical.
 
-#### Zuban
+### Zuban
 
 Zuban focuses on the intersection of static analysis and developer tooling. Written in Rust for performance, Zuban aims to provide
 Mypy-compatible diagnostics while significantly reducing execution time. Its primary differentiation lies in its "resilient" parsing
 capability, designed to provide useful type feedback even in broken or incomplete syntax trees, making it particularly effective for IDE
 integrations where code is constantly in a state of changes.
 
-#### Ty
+### Ty
 
 Ty is a newcomer from the open-source community that positions itself as the high-speed alternative for modern Python development. Its main
 selling point is raw performance; benchmarks often show it running 10 to 20 times faster than established tools . The goal with Ty is to make
@@ -84,7 +84,7 @@ type checking feel as instant as linting or formatting, integrating tightly into
 low-latency feedback, it is still an open question whether it can handle messy, legacy typing behaviors as strictly and reliably as the other
 well tested Python type checkers.
 
-### Automated Fuzzing and Test Generation
+## Automated Fuzzing and Test Generation
 
 The validation of compilers and static analyzers has historically relied on fuzzing—the automated generation of random test cases to uncover
 edge cases that manual testing often misses. In the domain of statically typed languages, this technique has reached a high degree of maturity.
@@ -99,7 +99,7 @@ work focuses on formal verification, creating a mathematical model of valid Pyth
 stress-test the inference engines of tools like Mypy and Pytype. This represents the current state-of-the-art in model-based test generation for
 Python type checkers.
 
-### The Research Gap: Data-Driven Fuzzing
+## The Research Gap: Data-Driven Fuzzing
 
 Despite the success of random generation in static languages (Csmith) and formal modeling in Python (ACL2s), both approaches largely ignore
 the rich history of human-reported defects. These methods generate tests from theoretical models, which often results in code that is
