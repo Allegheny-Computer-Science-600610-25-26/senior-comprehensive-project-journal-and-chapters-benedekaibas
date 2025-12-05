@@ -40,21 +40,46 @@ class A:
     @overload
     def fake_method(self: HasOverride) -> "A":
         ...
-    
+
     @overload
     def fake_method(self) -> Self:
         ...
-        
+
     def fake_method(self) -> Self | "A":
         if hasattr(self, 'override'):
             return A()
         return self
-    
+
 class B(A):  # fake_method should return B
     pass
 
 class C(A):  # fake_method should return A
     override = True
+```
+
+Conversely, **false negatives** pose a significant risk to system stability by allowing erroneous code to pass validation. @fig-match-error
+demonstrates a critical safety gap involving Python's structural pattern matching (`match`/`case`). In this scenario, the developer attempts
+to match against a non-existent attribute of the standard library module `itertools`.
+
+```{python}
+#| label: fig-match-error
+#| fig-cap: "An example of a false negative in Mypy involving structural pattern matching. The code references `itertools.DoesNotExist`, an attribute that does not exist in the module. While this code guarantees a runtime `AttributeError`, Mypy's static analysis successfully validates it without reporting any issues."
+
+import itertools
+
+def check(obj: object) -> None:
+    match obj:
+        case itertools.chain():
+            print("Chain")
+        # The 'itertools' module has no attribute 'DoesNotExist'.
+        # This line will raise an AttributeError at runtime.
+        case itertools.DoesNotExist():
+            print("This unreachable code crashes the program.")
+        case _:
+            print("Default")
+
+if __name__ == "__main__":
+    check(1)
 ```
 
 ## Motivation
