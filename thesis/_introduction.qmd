@@ -82,6 +82,33 @@ if __name__ == "__main__":
     check(1)
 ```
 
+Inherent Blind Spots Specific dynamic features of Python create unavoidable "blind spots" for static analyzers. These are scenarios where the
+tool loses track of a variable's type, leading to unsound assumptions:
+
+- Runtime Metaprogramming: Runtime Metaprogramming: Python allows code to modify its own structure during execution. Functions like `setattr()`
+  , `eval()`, or dynamic class decorators modify objects in ways that are invisible to a static parser. A type checker looking at the source
+  code cannot "see" the attributes added at runtime, often leading to false reports of `AttributeError`.
+
+As shown in @fig-metaprogramming, this disconnect between runtime behavior and static visibility is a frequent source of frustration for
+developers working with data-driven classes.
+
+```{python}
+#| label: fig-metaprogramming
+#| fig-cap: "An example of a false positive caused by runtime metaprogramming. The `setattr` function modifies the object structure during execution to add the `timeout` attribute. Since static analyzers cannot execute the loop, they fail to register the new attribute, leading to an erroneous `attr-defined` error."
+
+class DynamicConfig:
+    def __init__(self, settings: dict[str, int]) -> None:
+        for key, value in settings.items():
+            # Dynamically attach attributes based on dictionary keys
+            setattr(self, key, value)
+
+config = DynamicConfig({"timeout": 300})
+
+# Runtime: Prints 300 successfully.
+# Static Analysis: Error! "DynamicConfig" has no attribute "timeout".
+print(config.timeout)
+```
+
 ## Motivation
 
 The adoption of static type checkers in Python has grown significantly over the past years. Major technology companies and open-source projects
