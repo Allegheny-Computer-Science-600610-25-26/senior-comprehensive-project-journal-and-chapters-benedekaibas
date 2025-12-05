@@ -11,6 +11,52 @@ systems and artificial intelligence. However, Python’s flexibility comes at a 
 that type-related errors are among the most prevalent runtime exceptions in Python development [3]. These errors, which occur when an operation
 is performed on an incompatible data type, account for a significant portion of defects in open-source Python projects [4].
 
+## The Challange of Building and Maintaining Python Type Checkers
+
+While the concept of static analysis is mature in languages like C, C++ or Java, implementing a robust type checker for Python presents unique
+and significant engineering challenges. Unlike statically typed languages where variable types are resolved at compile-time, Python is
+inherently dynamic. This flexibility, while beneficial for developer velocity, creates a hostile environment for static verification.
+
+The Complexity of Gradual Typing Building a type checker for Python is not simply about enforcing rules; it is about managing ambiguity. Python
+utilizes Gradual Typing [@siek2015refined], a system where parts of the code are statically typed, and others are dynamic. A type checker must
+seamlessly handle the interaction between strict type rules and dynamic "duck typing." This requires the checker to make complex inferences
+when data flows from an untyped context (e.g., a legacy library) into a typed context. If the checker is too strict, it rejects valid code
+(false positives); if it is too lenient, it misses bugs (false negatives).
+
+To illustrate the challenges discussed in Section 1.2 regarding "blind spots" in inference engines, we present a concrete example of a false
+positive derived from a reported issue. As shown in @fig-overload-error, distinct type checkers often disagree on the validity of complex
+typing constructs.
+
+```{python}
+#| label: fig-overload-error
+#| fig-cap: "An example of a false positive report in Mypy involving conditional overloads and the `Self` type. While the code is valid and correctly handled by Pyright, Mypy fails to reconcile the structural subtyping requirements, reporting a signature incompatibility error."
+
+from typing import overload, Protocol, Self
+
+class HasOverride(Protocol):
+    override: bool
+
+class A:
+    @overload
+    def fake_method(self: HasOverride) -> "A":
+        ...
+    
+    @overload
+    def fake_method(self) -> Self:
+        ...
+        
+    def fake_method(self) -> Self | "A":
+        if hasattr(self, 'override'):
+            return A()
+        return self
+    
+class B(A):  # fake_method should return B
+    pass
+
+class C(A):  # fake_method should return A
+    override = True
+```
+
 ## Motivation
 
 The adoption of static type checkers in Python has grown significantly over the past years. Major technology companies and open-source projects
