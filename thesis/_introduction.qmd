@@ -109,6 +109,48 @@ config = DynamicConfig({"timeout": 300})
 print(config.timeout)
 ```
 
+- Control Flow Ambiguity: In dynamic code, a variable's type can change based on runtime conditions that are statically undecidable. For
+  example, a variable might be an `int` or a `str` depending on a random seed or user input. Type checkers attempt to handle this via "Type
+  Narrowing," but complex branching logic often causes the inference engine to widen the type to `Any` or `Union`, effectively losing precision.
+
+@fig-control-flow illustrates this breakdown. While the type checker knows `data_packet` is a `Union`, the subsequent function call strips this
+type information away, allowing a fatal `AttributeError` to pass silently.
+
+```{python}
+#| label: fig-control-flow
+#| fig-cap: "An example of control flow ambiguity compounded by `Any` propagation. The type of `data_packet` is determined by a random seed. Because the helper function `obscure_mutation` returns `Any`, the static analyzer loses track of the specific type (int, str, or list). Consequently, it permits the `.append()` method call, which causes a runtime crash in 2 out of 3 execution paths."
+
+import random
+from typing import Union, List, Any
+
+def complex_processing(seed: int) -> None:
+    data_packet: Union[int, str, List[str]]
+
+    # Branching logic determines the runtime type
+    if seed % 3 == 0:
+        data_packet = 1024
+    elif seed % 3 == 1:
+        data_packet = "Payload_Alpha"
+    else:
+        data_packet = ["header", "body", "footer"]
+
+    # The static analyzer tracks the Union up to here.
+    # But this function returns 'Any', erasing that knowledge.
+    def obscure_mutation(pkt: Any) -> Any:
+        if isinstance(pkt, int):
+            return str(pkt)
+        return pkt
+
+    processed_packet = obscure_mutation(data_packet)
+
+    # This line causes a runtime error if data_packet was not a list,
+    # but static analysis permits it because processed_packet is 'Any'.
+    # Result: AttributeError: 'str' object has no attribute 'append'
+    print(processed_packet.append("checksum"))
+
+complex_processing(random.randint(0, 100))
+```
+
 ## Motivation
 
 The adoption of static type checkers in Python has grown significantly over the past years. Major technology companies and open-source projects
