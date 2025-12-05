@@ -1,36 +1,237 @@
+---
+title: "An Empirical Study on Static Analyzer Toolsets to Reduce False Positives, False Negatives in Python Type Checkers"
+date: "2025-10-11"
+---
+
 # Introduction
 
-This chapter describes your completed senior thesis work,
-including the overall aims  and the background motivating your research. Whenever
-possible, you should use one or more concrete examples and technical diagrams.
+By 2025, Python has established itself as the dominant programming language, a trend corroborated by major industry indices including the
+IEEE Spectrum and TIOBE [1, 2]. Its ecosystem is now foundational to diverse sectors, ranging from web and enterprise development to embedded
+systems and artificial intelligence. However, Python’s flexibility comes at a cost: a susceptibility to runtime failures. Research indicates
+that type-related errors are among the most prevalent runtime exceptions in Python development [3]. These errors, which occur when an operation
+is performed on an incompatible data type, account for a significant portion of defects in open-source Python projects [4].
 
-It is often useful and necessary to separate the introduction into multiple sections.
-Several possible sections are proposed below, you can use these or distribute your
-introductory text into sections in another way.
+## The Challange of Building and Maintaining Python Type Checkers
 
-The headings below propose _one way_ you might structure this section of the document.
+While the concept of static analysis is mature in languages like C, C++ or Java, implementing a robust type checker for Python presents unique
+and significant engineering challenges. Unlike statically typed languages where variable types are resolved at compile-time, Python is
+inherently dynamic. This flexibility, while beneficial for developer velocity, creates a hostile environment for static verification.
+
+The Complexity of Gradual Typing Building a type checker for Python is not simply about enforcing rules; it is about managing ambiguity. Python
+utilizes Gradual Typing [@siek2015refined], a system where parts of the code are statically typed, and others are dynamic. A type checker must
+seamlessly handle the interaction between strict type rules and dynamic "duck typing." This requires the checker to make complex inferences
+when data flows from an untyped context (e.g., a legacy library) into a typed context. If the checker is too strict, it rejects valid code
+(false positives); if it is too lenient, it misses bugs (false negatives).
+
+To illustrate the challenges discussed in Section 1.2 regarding "blind spots" in inference engines, we present a concrete example of a false
+positive derived from a reported issue [@mypy_issue_19671]. As shown in @fig-overload-error, distinct type checkers often disagree on the validity of complex
+typing constructs.
+
+```{python}
+#| label: fig-overload-error
+#| fig-cap: "An example of a false positive report in Mypy involving conditional overloads and the `Self` type. While the code is valid and correctly handled by Pyright, Mypy fails to reconcile the structural subtyping requirements, reporting a signature incompatibility error."
+
+from typing import overload, Protocol, Self
+
+class HasOverride(Protocol):
+    override: bool
+
+class A:
+    @overload
+    def fake_method(self: HasOverride) -> "A":
+        ...
+
+    @overload
+    def fake_method(self) -> Self:
+        ...
+
+    def fake_method(self) -> Self | "A":
+        if hasattr(self, 'override'):
+            return A()
+        return self
+
+class B(A):  # fake_method should return B
+    pass
+
+class C(A):  # fake_method should return A
+    override = True
+```
+
+Conversely, **false negatives** pose a significant risk to system stability by allowing erroneous code to pass validation. @fig-match-error
+demonstrates a critical safety gap involving Python's structural pattern matching, derived from Mypy Issue #20018 [@mypy_issue_20018]. In this
+scenario, the developer attempts to match against a non-existent attribute of the standard library module `itertools`.
+
+```{python}
+#| label: fig-match-error
+#| fig-cap: "An example of a false negative in Mypy involving structural pattern matching. The code references `itertools.DoesNotExist`, an attribute that does not exist in the module. While this code guarantees a runtime `AttributeError`, Mypy's static analysis successfully validates it without reporting any issues."
+
+import itertools
+
+def check(obj: object) -> None:
+    match obj:
+        case itertools.chain():
+            print("Chain")
+        # The 'itertools' module has no attribute 'DoesNotExist'.
+        # This line will raise an AttributeError at runtime.
+        case itertools.DoesNotExist():
+            print("This unreachable code crashes the program.")
+        case _:
+            print("Default")
+
+if __name__ == "__main__":
+    check(1)
+```
+
+Inherent Blind Spots Specific dynamic features of Python create unavoidable "blind spots" for static analyzers. These are scenarios where the
+tool loses track of a variable's type, leading to unsound assumptions:
+
+- Runtime Metaprogramming: Runtime Metaprogramming: Python allows code to modify its own structure during execution. Functions like `setattr()`
+  , `eval()`, or dynamic class decorators modify objects in ways that are invisible to a static parser. A type checker looking at the source
+  code cannot "see" the attributes added at runtime, often leading to false reports of `AttributeError`.
+
+As shown in @fig-metaprogramming, this disconnect between runtime behavior and static visibility is a frequent source of frustration for
+developers working with data-driven classes.
+
+```{python}
+#| label: fig-metaprogramming
+#| fig-cap: "An example of a false positive caused by runtime metaprogramming. The `setattr` function modifies the object structure during execution to add the `timeout` attribute. Since static analyzers cannot execute the loop, they fail to register the new attribute, leading to an erroneous `attr-defined` error."
+
+class DynamicConfig:
+    def __init__(self, settings: dict[str, int]) -> None:
+        for key, value in settings.items():
+            # Dynamically attach attributes based on dictionary keys
+            setattr(self, key, value)
+
+config = DynamicConfig({"timeout": 300})
+
+# Runtime: Prints 300 successfully.
+# Static Analysis: Error! "DynamicConfig" has no attribute "timeout".
+print(config.timeout)
+```
+
+- Control Flow Ambiguity: In dynamic code, a variable's type can change based on runtime conditions that are statically undecidable. For
+  example, a variable might be an `int` or a `str` depending on a random seed or user input. Type checkers attempt to handle this via "Type
+  Narrowing," but complex branching logic often causes the inference engine to widen the type to `Any` or `Union`, effectively losing precision.
+
+@fig-control-flow illustrates this breakdown. While the type checker knows `data_packet` is a `Union`, the subsequent function call strips this
+type information away, allowing a fatal `AttributeError` to pass silently.
+
+```{python}
+#| label: fig-control-flow
+#| fig-cap: "An example of control flow ambiguity compounded by `Any` propagation. The type of `data_packet` is determined by a random seed. Because the helper function `obscure_mutation` returns `Any`, the static analyzer loses track of the specific type (int, str, or list). Consequently, it permits the `.append()` method call, which causes a runtime crash in 2 out of 3 execution paths."
+
+import random
+from typing import Union, List, Any
+
+def complex_processing(seed: int) -> None:
+    data_packet: Union[int, str, List[str]]
+
+    # Branching logic determines the runtime type
+    if seed % 3 == 0:
+        data_packet = 1024
+    elif seed % 3 == 1:
+        data_packet = "Payload_Alpha"
+    else:
+        data_packet = ["header", "body", "footer"]
+
+    # The static analyzer tracks the Union up to here.
+    # But this function returns 'Any', erasing that knowledge.
+    def obscure_mutation(pkt: Any) -> Any:
+        if isinstance(pkt, int):
+            return str(pkt)
+        return pkt
+
+    processed_packet = obscure_mutation(data_packet)
+
+    # This line causes a runtime error if data_packet was not a list,
+    # but static analysis permits it because processed_packet is 'Any'.
+    # Result: AttributeError: 'str' object has no attribute 'append'
+    print(processed_packet.append("checksum"))
+
+complex_processing(random.randint(0, 100))
+```
 
 ## Motivation
 
-## Current State of the Art
+The adoption of static type checkers in Python has grown significantly over the past years. Major technology companies and open-source projects
+have integrated type checking into their development workflows to catch bugs early in the development cycle [5, 6]. Tools like mypy, pyright,
+pyre, and pytype have become essential components in many Python projects' continuous integration pipelines [7, 8, 9]. As the reliance on these
+tools increases, so does the importance of their correctness and reliability.
 
-## Goals of the Project
+Recently, the open-source community has introduced several high-performance type checkers, including pyrefly, zuban, and ty [10, 11, 12].
+While these tools claim to offer superior execution speeds compared to industry standards, their correctness and reliability remain unverified.
+Crucially, there is currently no comprehensive framework benchmarking these emerging tools against established static analyzers. Furthermore,
+there is a distinct lack of research evaluating their behavior on newly generated code examples specifically designed to identify false
+positive reports.
 
-## Ethical Implications
+When developers trust a type checker to validate their code, they expect the tool to accurately identify genuine type errors while not flagging
+correct code as erroneous. A type checker that produces too many false positives can lead to developer frustration and eventual abandonment of
+the tool, a phenomenon known as warning fatigue [13]. Developers may start ignoring warnings or adding unnecessary type annotations to silence
+the checker, which defeats the purpose of static analysis. On the other hand, a type checker that produces false negatives provides a false
+sense of security. Developers might believe their code is type-safe when it actually contains bugs that could manifest at runtime and
+potentially cause system failures in production environments [3].
 
-This document requires that you discuss the ethical implications of your work -- no
-matter how benign you consider the outcome of your project. As several major studies
-of ethical issues in computer science assert: _no project is completely value-neutral_.
+The Python type system has evolved considerably since the introduction of type hints in PEP 484 [14]. New features such as protocols, type
+guards, variadic generics, and the `@member` decorator for enums have been added to the language [15, 16, 17]. Each new feature introduces
+additional complexity that type checkers must handle correctly. As demonstrated in the examples provided in the introduction, even mature type
+checkers like mypy can struggle with these newer constructs. This ongoing evolution of the type system creates a continuous need for testing
+and validation of type checker implementations.
 
-To assist you in elaborating on these issues, the following areas are topics you might
-consider addressing. You do not need to address all of them.
+Furthermore, the dynamic nature of Python presents a fundamental theoretical challenge for static analysis: the trade-off between soundness
+and completeness. In type theory, a sound system guarantees that no ill-typed program is accepted (no false negatives), while a complete
+system ensures that no well-typed program is rejected (no false positives). Due to Python's highly dynamic features—such as runtime class
+modification, eval, and the extensive use of the Any type—achieving perfect soundness is computationally undecidable [@siek2015refined].
+Consequently, practical type checkers must rely on the principles of Gradual Typing, which intentionally relaxes soundness guarantees to
+maintain usability [@vitousek2014design]. This inherent compromise creates a fragile boundary where inconsistencies and "soundness holes"
+frequently emerge, further necessitating the need for rigorous automated testing.
 
-* Information Privacy
-* Information Accuracy (e.g. can contain reliability)
-* Potential Misuse (e.g. computer crime, unintended consequences)
-* Second- or Third-Party Risk (e.g. safety)
-* Data Collection Issues (e.g. issues inherent in collecting data)
-* Algorithmic or Data Bias
-* Potential Power Difference / Social Imbalance / Issues in Equity
+Currently, the process of finding bugs in type checkers relies heavily on user-reported issues and manual test case creation by the development
+teams. This approach has limitations because it depends on users encountering edge cases during their regular development work and taking the
+time to report them. Many bugs in type checkers may go undetected for extended periods simply because no one has written code that triggers
+them. Our automated approach to re-generate test cases based on closed GitHub issues from type checkers that can expose false positives and
+false negatives would complement the existing testing strategies and help identify issues before users encounter them. Furthermore, the
+diversity of type checkers available for Python means that the same code can produce different results across different tools. Understanding
+these differences and identifying cases where type checkers disagree can help both developers choose the right tool for their needs and type
+checker maintainers improve consistency across the ecosystem.
 
-In addition, reflect on ways that the above harms can be or are mitigated by your work.
+This research is motivated by the need to systematically improve the quality of Python type checkers through automated testing.
+By developing a tool that can generate test cases capable of triggering false reports, we aim to reduce the burden on type checker development
+teams and ultimately improve the reliability of static type analysis in Python.
+
+### The Importance of Using Automated Test Generation
+
+According to Oh and Oh [@oh2022pyter], the timeline for resolving type errors varies significantly: while 31.4% of reported errors are patched
+within a single day, 29.4% require more than a month to resolve. Furthermore, bugs included in the PyTER benchmark [@oh2022pyter] persisted for
+an average of 82 days, with approximately 30% taking longer than a month to fix.
+
+These statistics indicate that the manual identification and reporting of type-related issues in open-source projects is a slow,
+resource-intensive process. This latency is particularly problematic given the rapid evolution of the Python programming language, which
+frequently introduces new syntax and features [@pep602]. To maintain effective type error detection, type checkers must be developed and
+updated concurrently with these language changes. Reliance on manual testing and user reports following a new Python release is inherently
+reactive and time-consuming, preventing the ecosystem from adopting a proactive stance toward type safety.
+
+### Current State of the Art
+
+Current research into Python static typing is diverse, encompassing empirical studies on type checkers usage [@khan2022empirical], comparative
+analyses of tool performance [@oh2024towards], and the application of fuzzing techniques for bug detection [@xifaras2025enumerative]. While
+these distinct lines of inquiry exist, there is a significant gap in the literature: currently, no study integrates automated fuzzing with
+empirical analysis to systematically evaluate the reliability of the most well known type checkers.
+
+Historically, the dynamic nature of Python has presented inherent challenges for static analysis, often limiting its reach across the broader
+spectrum of Python users. However, a noticeable shift is occurring within the industry. Major technology firms and large-scale open-source
+projects are increasingly integrating static typing [@distefano2019scaling] to ensure maintainability and prevent regressions in massive
+codebases. This growing demand has catalyzed the development of numerous new type checkers, yet the rigor of their validation remains an open
+question.
+
+#### Addressing The Gap
+
+Despite advancements in static analysis, there is currently no research or automated tooling that systematically generates high-level code
+examples derived from closed issue reports from type checkers. Specifically, current researches have not targeted the automated ingestion of
+previously submitted issues to refine—or mutate—them into new test cases designed to trigger false reports.
+
+Pytifex addresses this void by automating the generation of complex, high-level test cases derived from the history of resolved bugs. The tool
+operates by mining closed GitHub issues to extract code snippets that previously triggered false reports (false positives & false negatives).
+While these specific issues have been patched, Pytifex utilizes them as high-quality "seed" examples. It systematically refines—or mutates—
+these seeds to create new, adversarial test cases that retain the structural complexity of the original bug, but introduce novel variations
+capable of triggering false reports in the latest stable versions of established type checkers.
+
