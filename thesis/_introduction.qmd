@@ -24,7 +24,7 @@ when data flows from an untyped context (e.g., a legacy library) into a typed co
 (false positives); if it is too lenient, it misses bugs (false negatives).
 
 To illustrate the challenges discussed in Section 1.2 regarding "blind spots" in inference engines, we present a concrete example of a false
-positive derived from a reported issue. As shown in @fig-overload-error, distinct type checkers often disagree on the validity of complex
+positive derived from a reported issue [@mypy_issue_19671]. As shown in @fig-overload-error, distinct type checkers often disagree on the validity of complex
 typing constructs.
 
 ```{python}
@@ -58,8 +58,8 @@ class C(A):  # fake_method should return A
 ```
 
 Conversely, **false negatives** pose a significant risk to system stability by allowing erroneous code to pass validation. @fig-match-error
-demonstrates a critical safety gap involving Python's structural pattern matching (`match`/`case`). In this scenario, the developer attempts
-to match against a non-existent attribute of the standard library module `itertools`.
+demonstrates a critical safety gap involving Python's structural pattern matching, derived from Mypy Issue #20018 [@mypy_issue_20018]. In this
+scenario, the developer attempts to match against a non-existent attribute of the standard library module `itertools`.
 
 ```{python}
 #| label: fig-match-error
