@@ -119,12 +119,6 @@ developers working with data-driven classes.
   example, a variable might be an `int` or a `str` depending on a random seed or user input. Type checkers attempt to handle this via "Type
   Narrowing," but complex branching logic often causes the inference engine to widen the type to `Any` or `Union`, effectively losing precision.
 
-@fig-control-flow illustrates a critical failure mode where control flow ambiguity is compounded by type erasure. To determine if modern tools
-can look through this obfuscation, we executed the test case against **Mypy** (v1.19.0), **Pyrefly** (v0.44.2), **Zuban** (v0.3.0), and **Ty**
-(v0.0.1a32). The results were uniform: every tool failed to identify the risk. While the code is guaranteed to crash in two out of three
-execution paths (when the seed produces an integer or string), the static analyzers universally reported "Success," exposing a dangerous
-false negative caused by the propagation of the `Any` type.
-
 @fig-control-flow illustrates this breakdown. While the type checker knows `data_packet` is a `Union`, the subsequent function call strips this
 type information away, allowing a fatal `AttributeError` to pass silently.
 ```{python}
@@ -162,6 +156,12 @@ def complex_processing(seed: int) -> None:
 complex_processing(random.randint(0, 100))
 ```
 
+@fig-control-flow illustrates a critical failure mode where control flow ambiguity is compounded by type erasure. To determine if modern tools
+can look through this obfuscation, we executed the test case against **Mypy** (v1.19.0), **Pyrefly** (v0.44.2), **Zuban** (v0.3.0), and **Ty**
+(v0.0.1a32). The results were uniform: every tool failed to identify the risk. While the code is guaranteed to crash in two out of three
+execution paths (when the seed produces an integer or string), the static analyzers universally reported "Success," exposing a dangerous
+false negative caused by the propagation of the `Any` type.
+
 - **The "Any" Propagation**: The `Any` type in Python acts as an escape hatch for the type checker. Once a variable is inferred as `Any`
   (often due to a missing annotation in a library), the checker ceases to validate operations on it. This creates a "blind spot" where errors
   can propagate silently through the system, only to crash the program at runtime.
@@ -196,6 +196,12 @@ def system_pipeline() -> None:
 
 system_pipeline()
 ```
+
+@fig-any-propagation demonstrates this danger in a realistic scenario involving legacy code integration. The return type of legacy_fetch_record
+effectively turns off type checking for the record variable. To assess how modern tools handle this risk, we tested the code against **Mypy**
+(v1.19.0), **Pyrefly** (v0.44.2), **Zuban** (v0.3.0), and **Ty** (v0.0.1a32). The results confirmed a universal failure: every tool reported
+"Success" and "No issues found," completely missing the invalid attribute access that causes an immediate runtime crash. This illustrates how
+a single instance of Any can compromise the safety guarantees of the entire analysis pipeline.
 
 ## Motivation
 
