@@ -24,8 +24,7 @@ when data flows from an untyped context (e.g., a legacy library) into a typed co
 (false positives); if it is too lenient, it misses bugs (false negatives).
 
 To illustrate the challenges discussed in Section 1.2 regarding "blind spots" in inference engines, we present a concrete example of a false
-positive derived from a reported issue [@mypy_issue_19671]. As shown in @fig-overload-error, distinct type checkers often disagree on the validity of complex
-typing constructs.
+positive derived from a reported issue [@mypy_issue_19671]. Distinct type checkers often disagree on the validity of complex typing constructs.
 
 ```{python}
 #| label: fig-overload-error
@@ -57,9 +56,10 @@ class C(A):  # fake_method should return A
     override = True
 ```
 
-Conversely, **false negatives** pose a significant risk to system stability by allowing erroneous code to pass validation. @fig-match-error
-demonstrates a critical safety gap involving Python's structural pattern matching, derived from Mypy Issue #20018 [@mypy_issue_20018]. In this
-scenario, the developer attempts to match against a non-existent attribute of the standard library module `itertools`.
+Conversely, **false negatives** undermine system stability by permitting erroneous code to bypass validation. A critical safety gap involves
+Python's structural pattern matching, as identified in Mypy Issue #20018 [@mypy_issue_20018]. In this scenario, the static analyzer fails to
+flag a match statement that references a non-existent attribute of the standard library module itertools. While the type checker reports no
+errors, the code triggers an AttributeError immediately upon execution because the runtime attempts to resolve the invalid name.
 
 ```{python}
 #| label: fig-match-error
@@ -89,13 +89,6 @@ tool loses track of a variable's type, leading to unsound assumptions:
   dynamic class decorators modify objects in ways that are invisible to a static parser. A type checker looking at the source code cannot
   "see" the attributes added at runtime, often leading to false reports of `AttributeError`.
 
-As shown in @fig-metaprogramming, this disconnect creates a persistent "blind spot" for static analysis. To verify the universality of this
-issue, we evaluated the code against the latest releases of the ecosystem's leading tools. **Pyrefly** (v0.44.2), **Zuban** (v0.3.0),
-**Ty** (v0.0.1a32), and **Mypy** (v1.19.0) all flag this valid code as an error, highlighting a regression in handling dynamic patterns within
-the modern ecosystem.
-
-As shown in @fig-metaprogramming, this disconnect between runtime behavior and static visibility is a frequent source of frustration for
-developers working with data-driven classes.
 ```{python}
 #| label: fig-metaprogramming
 #| fig-cap: "An example of a universal false positive caused by runtime metaprogramming. The `setattr` function modifies the object structure during execution to add the `timeout` attribute. Despite the code executing successfully at runtime, Mypy, Pyrefly (v0.44.2), Zuban (v0.3.0), and Ty (v0.0.1a32) all incorrectly report an `attr-defined` or `missing-attribute` error."
@@ -113,6 +106,14 @@ config = DynamicConfig({"timeout": 300})
 # Result: 4/4 Type Checkers produced a False Positive.
 print(config.timeout)
 ```
+
+As shown in @fig-metaprogramming, this disconnect creates a persistent "blind spot" for static analysis. To verify the universality of this
+issue, we evaluated the code against the latest releases of the ecosystem's leading tools. **Pyrefly** (v0.44.2), **Zuban** (v0.3.0),
+**Ty** (v0.0.1a32), and **Mypy** (v1.19.0) all flag this valid code as an error, highlighting a regression in handling dynamic patterns within
+the modern ecosystem.
+
+As shown in @fig-metaprogramming, this disconnect between runtime behavior and static visibility is a frequent source of frustration for
+developers working with data-driven classes.
 
 - **Control Flow Ambiguity**: In dynamic code, a variable's type can change based on runtime conditions that are statically undecidable. For
   example, a variable might be an `int` or a `str` depending on a random seed or user input. Type checkers attempt to handle this via "Type
