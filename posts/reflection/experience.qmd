@@ -1,0 +1,31 @@
+---
+title: "Reflect on your experiences preparing for and giving your presentation"
+date: "2025-12-04"
+---
+
+![Image post thumbnail](thumbnail.jpg)
+
+## What is the Presentation About?
+
+For our senior comprehensive project it is required for us to give a presentation about our prototype. This presentation serves as a proof that
+we know the fundamental of our topic, our chosen research and/or tool is feasible, and that we are able to identify the place of our project in
+today's world computer science, software engineering. The presentation is also good for preparing us giving the final presentation at the end of
+next semester when we have to present our final senior comprehensive project.
+
+Overall, we can say that this presentation is a preparation for the upcoming final presentation next semester and also a "test" to show that our
+senior comp is feasible, we started working on it, and we can ship a prototype which serves as a small, restricted version of our final tool
+and/or research.
+
+## Preparing for My Presentation
+
+First, I've thought that preparing for a presentation and creating slides are easy, but the preparation this time proved that I was wrong. It is
+actually pretty hard and complicated to make good slides for a presentation. Also creating THE perfect presentation is almost impossible since
+there is always something that we can do better, but our goal is not even to make THE perfect presentation of ALL TIME. Rather we want to 
+connect our audience to our presentation and involve them in our talk, so they understand our topic and will be curious about what we are doing.
+
+I have created my slides pretty early during the semester, but the more I've met with professor Kapfhammer during office hours the more I have 
+realized that the current state of my presentation's slides are not as good as I've thought first. We actually spent 2-3 office hours just to
+create, finalize, and practice my presentation. It was a pretty long and interesting process, but at the end it totally did worth it.
+
+Preparing for my first presentation included the following tasks: creating the prototype of my tool, gathering research papers, creating the
+slides for my presentation, finalize everyting, and preparing for the presentation itself.
