@@ -279,11 +279,52 @@ question.
 
 Despite advancements in static analysis, there is currently no research or automated tooling that systematically generates high-level code
 examples derived from closed issue reports from type checkers. Specifically, current researches have not targeted the automated ingestion of
-previously submitted issues to refine—or mutate—them into new test cases designed to trigger false reports.
+previously submitted issues to refine—or mutate—them into new test cases designed to trigger false reports. This leads to reliability issues
+when it comes to use type checkers.
 
-Pytifex addresses this void by automating the generation of complex, high-level test cases derived from the history of resolved bugs. The tool
-operates by mining closed GitHub issues to extract code snippets that previously triggered false reports (false positives & false negatives).
-While these specific issues have been patched, Pytifex utilizes them as high-quality "seed" examples. It systematically refines—or mutates—
-these seeds to create new, adversarial test cases that retain the structural complexity of the original bug, but introduce novel variations
-capable of triggering false reports in the latest stable versions of established type checkers.
+## Proposed Solution: Pytifex
+
+To address the reliability issues inherent in these complex inference engines, this research proposes Pytifex, an automated differential
+testing framework designed to validate Python type checkers.
+
+*What is Pytifex?* Pytifex employs a data-driven differential testing methodology to uncover soundness gaps in static analyzers. Unlike
+traditional unit testing, which requires a pre-defined expected output (an oracle), Pytifex generates adversarial test cases and executes them
+against a suite of type checkers—specifically Mypy, Pyrefly, Zuban, and Ty. By comparing the diagnostic reports of these distinct
+implementations against each other and against the actual Python runtime behavior, Pytifex identifies discrepancies that indicate potential
+bugs in type checkersi.
+
+**Generation via Mutation Strategy** To generate these test cases, Pytifex utilizes a mutation-based approach. It bridges the gap between
+theoretical fuzzing and real-world usage by mining closed GitHub issues from major type checker repositories. Using these historical false
+reports as "seeds," it applies structural mutations to generate new code examples. This generation process targets two distinct failure modes:
+
+ - **Valid Variations (*False Positive* Detection)**: The tool generates semantically correct code that executes successfully in the Python
+   runtime. If a type checker rejects this code while others accept it (or while the runtime succeeds), Pytifex flags a potential False
+   Positive.
+
+- **Invalid Variations (*False Negative* Detection)**: The tool generates code that is syntactically correct but contains runtime logic errors,
+  such as invalid attribute access. If a type checker accepts this code while others reject it (or while the runtime crashes), Pytifex flags a
+  potential False Negative.
+
+**Research Significance** This differential approach is critical because it bypasses the "Oracle Problem"—the inherent difficulty of
+establishing a ground truth for static analysis. Specifically, it addresses the challenge of verifying whether a type checker provides the
+correct diagnostic for a given code example that either leads to a complex problem or is itself complex code.
+
+By leveraging the consensus between established tools and the actual Python runtime, Pytifex eliminates the need for a manual oracle. It can
+expose regressions and latent inconsistencies that random testing would miss, targeting the specific "blind spots" developers have already
+encountered and effectively weaponizing historical data to improve future tool stability.
+
+**Evaluation Methodology** The effectiveness of Pytifex will be evaluated through an empirical study comparing the latest versions of Mypy, 
+Pyrefly, Zuban, and Ty. The evaluation will focus on three key metrics:
+
+    1. **False Report Rate**: The frequency with which the generated test cases successfully trigger a demonstrable False Positive (rejecting
+       valid code) or False Negative (accepting invalid code) in the target type checkers.
+
+    2. **Discrepancy Rate**: The frequency with which Pytifex identifies inconsistencies between the tools (e.g., Mypy accepts the code, but
+       Pyright rejects it).
+
+    3. **Validity of Reports**: A manual qualitative analysis of the generated reports to determine if they represent genuine bugs in the type
+       checkers or limitations of the Python type system.
+
+By answering these questions, this research aims to provide a robust framework for improving the correctness of the Python static analysis
+ecosystem.
 
