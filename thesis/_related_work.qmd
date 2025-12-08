@@ -20,6 +20,56 @@ manual testing and reactive bug fixing is insufficient to keep pace with the vol
 for reliable, automated static analysis tools capable of identifying these issues early in the development process, before they turn into
 costly runtime failures or long-standing technical debt.
 
+## Theoretical Foundations of Type Systems
+
+To understand the complexity of modern Python tools, it is necessary to examine the fundamental principles of type theory. As defined by
+Cardelli [@cardelli1996type], a type system is a "tractable syntactic method for proving the absence of certain program behaviors by
+classifying phrases according to the kinds of values they compute." In essence, type checking performs a lightweight form of formal
+verification, ensuring that operations (such as addition or method calls) are only applied to compatible data structures.
+
+However, implementing these systems requires sophisticated algorithms. Traditional statically typed languages often rely on Hindley-Milner
+inference [@damas1982principal], which allows algorithms to deduce types without explicit annotations.
+
+To illustrate this fundamental algorithmic difference, consider the following comparison. @fig-haskell-hm demonstrates Hindley-Milner inference
+in Haskell. The compiler solves a system of equations to deduce the most general type for x. Once inferred, the type of x is immutable; it
+cannot change from a number to a string halfway through the function.
+```{Haskell}
+#| label: fig-haskell-hm
+#| fig-cap: "Hindley-Milner Inference in Haskell. The function `square` has no type annotations. The compiler analyzes the usage `x * x` and globally deduces the signature `Num a => a -> a`, guaranteeing type safety without requiring the compiler to track state changes line-by-line."
+
+-- The compiler infers: square :: Num a => a -> a
+square x = x * x
+
+main = print (square 5)
+-- The type of 'x' is mathematically fixed as a Number.
+```
+
+Python, however, necessitates a more complex approach known as flow-sensitive analysis. Because a variable `x` can change its type throughout
+the execution scope (e.g., starting as `None` and becoming an `int`), the type checker must track the state of the program control flow graph
+(CFG). This moves the challenge from simple unification to data-flow analysis, significantly increasing the computational complexity and the
+surface area for logic bugs in the checker itself [@pearce2013scaling].
+
+In contrast, @fig-python-flow demonstrates Flow-Sensitive Analysis in Python.
+```{python}
+#| label: fig-python-flow
+#| fig-cap: "Flow-Sensitive Analysis in Python. Unlike the Haskell example, the variable `val` changes its type throughout the execution scope. The type checker must track the Control Flow Graph (CFG) to understand that `val` transforms from `None` $\rightarrow$ `int` $\rightarrow$ `Union[int, str]`. This necessitates complex data-flow analysis rather than simple unification."
+
+def process_data(condition: bool) -> None:
+    # 1. Initial State: val is None
+    val = None
+
+    if condition:
+        # 2. State Change: val is now int
+        val = 42
+        print(val + 10) # Valid: int + int
+    else:
+        # 3. State Change: val is now str
+        val = "Error"
+        print(val.upper()) # Valid: str method
+
+    # 4. Merge Point: val is Union[int, str, None]
+```
+
 ## The Landscape of Python Static Analysis
 
 The classification of programming languages into static and dynamic typing paradigms fundamentally dictates how correctness is verified. In
@@ -28,7 +78,7 @@ and guarantee that certain classes of errors are absent before execution. Conver
 checking is deferred until runtime. This approach offers significant advantages in developer velocity, enabling rapid prototyping, concise
 syntax, and high flexibility through features like runtime reflection and metaprogramming.
 
-## Challenges of Static Analysis in Dynamic Languages
+### Challenges of Static Analysis in Dynamic Languages
 
 Despite these ergonomic benefits, dynamic typing introduces severe challenges for static analysis. The primary disadvantage is the lack of
 explicit type information, which forces static analyzers to rely on complex inference algorithms that are often heuristic rather than provable.
@@ -50,7 +100,7 @@ Specifically, Python's dynamic features makes static analysis harder for the Pyt
   operations (like string manipulation) on the items. Similarly, reusing a variable name for different types (`x = 10; x = "text"`) is valid
   Python, but frequently confuses analyzers that "lock" the inferred type to the first assignment, flagging the second as an error.
 
-## Established and Emerging Tools
+### Established and Emerging Tools
 
 To mitigate these risks, the Python ecosystem has adopted a range of static type checkers. These tools vary significantly in their architecture,
 performance, and adherence to soundness guarantees.
@@ -84,6 +134,19 @@ type checking feel as instant as linting or formatting, integrating tightly into
 low-latency feedback, it is still an open question whether it can handle messy, legacy typing behaviors as strictly and reliably as the other
 well tested Python type checkers.
 
+## Differential Testing
+
+Pytifex operates within the paradigm of Differential Testing, a methodology formally introduced by McKeeman [@mckeeman1998differential]. The
+core principle of differential testing is to detect bugs by providing the same input to multiple comparable systems (or "implementations") and
+observing discrepancies in their output. Unlike traditional testing, which requires a known "correct" answer (an oracle), differential testing
+relies on the consensus of the group.
+
+This technique has proven exceptionally effective in the domain of software validation. While originally popularized for C compilers, recent
+applications have successfully extended the methodology to diverse domains such as SQL database engines [@riggs2020finding] and symbolic
+execution engines [@kapus2019differential]. By positioning Pytifex as a differential testing tool, this research leverages the established
+premise that widely used implementations (like Mypy and Pyright) can serve as effective pseudo-oracles for one another, allowing for the
+detection of subtle semantic disagreements that would escape standard unit tests.
+
 ## Automated Fuzzing and Test Generation
 
 The validation of compilers and static analyzers has historically relied on fuzzing—the automated generation of random test cases to uncover
@@ -99,13 +162,19 @@ work focuses on formal verification, creating a mathematical model of valid Pyth
 stress-test the inference engines of tools like Mypy and Pytype. This represents the current state-of-the-art in model-based test generation for
 Python type checkers.
 
-## The Research Gap: Data-Driven Fuzzing
+## The Research Gap: Integrating MSR with Differential Testing
 
-Despite the success of random generation in static languages (Csmith) and formal modeling in Python (ACL2s), both approaches largely ignore
-the rich history of human-reported defects. These methods generate tests from theoretical models, which often results in code that is
-syntactically valid but semantically dissimilar to the patterns developers actually write. While mutation testing is a well-established
-technique for assessing test suite quality in general software engineering [@jia2010analysis], its application to the generators of compiler
-tests—specifically using historical bug reports as seeds—remains unexplored in the Python ecosystem. Currently, there is no existing literature
-that leverages the repository of closed GitHub issues to systematically generate regression tests for Python type checkers. By failing to
-utilize this historical data, current methods miss the opportunity to learn from the specific "blind spots" that have previously confused type
-checkers, leaving a significant gap for data-driven, mution-based testing strategies.
+While the individual components of automated testing exist in isolation, there is a distinct lack of integration between Mining Software
+Repositories (MSR) and differential testing within the Python ecosystem.
+
+The field of MSR has matured significantly, with researchers routinely extracting data from version control systems and issue trackers to
+support software engineering tasks. Hassan [@hassan2008road] established the foundational importance of using historical repository data to
+predict future defects and understand software evolution. In the context of Python, MSR techniques have been successfully employed for
+Automated Program Repair, such as the work by Chow et al. on PyTy [@chow2024pyty], which mines code changes to learn how to fix type errors.
+
+However, a gap remains in applying MSR to Test Generation. Current state-of-the-art approaches for testing Python type checkers rely either on
+formal models [@xifaras2025enumerative] or manual test suites. There is currently no existing literature that leverages the issue trackers of
+type checker projects—specifically the reports made by human developers identifying false diagnostics originating from type checkers—to
+systematically seed a differential testing engine. Pytifex addresses this void by synthesizing the historical insights of MSR with the
+bug-finding capabilities of differential testing and mutation analysis.
+
