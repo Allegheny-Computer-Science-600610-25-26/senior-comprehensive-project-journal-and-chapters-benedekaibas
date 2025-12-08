@@ -291,7 +291,7 @@ testing framework designed to validate Python type checkers.
 traditional unit testing, which requires a pre-defined expected output (an oracle), Pytifex generates adversarial test cases and executes them
 against a suite of type checkers—specifically Mypy, Pyrefly, Zuban, and Ty. By comparing the diagnostic reports of these distinct
 implementations against each other and against the actual Python runtime behavior, Pytifex identifies discrepancies that indicate potential
-bugs in type checkersi.
+bugs in type checkers.
 
 **Generation via Mutation Strategy** To generate these test cases, Pytifex utilizes a mutation-based approach. It bridges the gap between
 theoretical fuzzing and real-world usage by mining closed GitHub issues from major type checker repositories. Using these historical false
