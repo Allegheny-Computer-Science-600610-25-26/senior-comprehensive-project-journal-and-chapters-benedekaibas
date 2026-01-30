@@ -12,7 +12,7 @@ format:
 natbiboptions: numbers
 # EDIT AT YOUR OWN PERIL #
 
-title: An Empirical Study on Static Analyzer Toolsets to Reduce False Positives, False Negatives in Python Type Checkers
+title: An Automated Differential Testing Agent for Python Type Checkers
 
 firstreader: Dr. Gregory M. Kapfhammer
 secondreader: Professor Douglas Luman
@@ -30,11 +30,11 @@ author:
       postal-code: 16335
 
 abstract: |
-  Python’s dominance in large-scale systems necessitates robust static type checkers like Mypy and Pyright. But as the language evolves, who
-  verifies these tools? We introduce Pytifex, a framework that bridges the gap between theoretical fuzzing and real-world defects. Unlike
-  random code generators, Pytifex mines and mutates closed GitHub issues to create targeted, adversarial test cases. This column details how
-  data-driven differential testing reveals significant soundness gaps in major type checkers. We offer a roadmap for tool maintainers to use
-  these refined examples to fortify the Python ecosystem against false diagnostics.
+  Python’s continued evolution and frequent releases of type checkers (e.g., mypy, pyrefly, and ty) create the need for a proactive
+  verification technique. This paper introduces Pytifex, an automated differential testing agent that generates source code examples to expose
+  edge cases and blind spots in Python type checkers. By using LLMs seeded with historical bug reports mined from GitHub repositories, Pytifex
+  synthesizes known failures to generate novel code examples that surface contradictions among type checkers. These type checking disagreements
+  reveal potential validity gaps and edge cases, aiding both the creators of type checkers and the software engineers who use them.
 execute:
   eval: false
 ---
