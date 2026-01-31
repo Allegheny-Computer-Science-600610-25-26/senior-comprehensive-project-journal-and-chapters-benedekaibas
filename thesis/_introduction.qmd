@@ -1,5 +1,5 @@
 ---
-title: "An Empirical Study on Static Analyzer Toolsets to Reduce False Positives, False Negatives in Python Type Checkers"
+title: "Pytifex: An Automated Differential Testing Agent For Python Type Checkers"
 date: "2025-10-11"
 ---
 
@@ -7,7 +7,7 @@ date: "2025-10-11"
 
 By 2025, Python has established itself as the dominant programming language, a trend corroborated by major industry indices including the
 IEEE Spectrum and TIOBE [1, 2]. Its ecosystem is now foundational to diverse sectors, ranging from web and enterprise development to embedded
-systems and artificial intelligence. However, Python’s flexibility comes at a cost: a susceptibility to runtime failures. Research indicates
+systems and artificial intelligence. However, Python’s flexibility comes at a cost: a proneness to runtime failures. Research indicates
 that type-related errors are among the most prevalent runtime exceptions in Python development [3]. These errors, which occur when an operation
 is performed on an incompatible data type, account for a significant portion of defects in open-source Python projects [4].
 
@@ -17,238 +17,58 @@ While the concept of static analysis is mature in languages like C, C++ or Java,
 and significant engineering challenges. Unlike statically typed languages where variable types are resolved at compile-time, Python is
 inherently dynamic. This flexibility, while beneficial for developer velocity, creates a hostile environment for static verification.
 
-The Complexity of Gradual Typing Building a type checker for Python is not simply about enforcing rules; it is about managing ambiguity. Python
-utilizes Gradual Typing [@siek2015refined], a system where parts of the code are statically typed, and others are dynamic. A type checker must
-seamlessly handle the interaction between strict type rules and dynamic "duck typing." This requires the checker to make complex inferences
-when data flows from an untyped context (e.g., a legacy library) into a typed context. If the checker is too strict, it rejects valid code
-(false positives); if it is too lenient, it misses bugs (false negatives).
+## The Complexity of Gradual Typing and Type Checker Soundness
 
-To illustrate the challenges discussed in Section 1.2 regarding "blind spots" in inference engines, we present a concrete example of a false
-positive derived from a reported issue [@mypy_issue_19671]. Distinct type checkers often disagree on the validity of complex typing constructs.
+Building a type checker is not simply about enforcing rules; it is about navigating fundamental theoretical limitations. Python implements
+gradual typing [@siek2015refined], a system that allows developers to incrementally add type annotations to their code. However, even when code
+is fully annotated, Python's dynamic runtime semantics create inherent challenges for static verification.
 
-```{python}
-#| label: fig-overload-error
-#| fig-cap: "An example of a false positive report in Mypy involving conditional overloads and the `Self` type. While the code is valid and correctly handled by Pyright, Mypy fails to reconcile the structural subtyping requirements, reporting a signature incompatibility error."
-
-from typing import overload, Protocol, Self
-
-class HasOverride(Protocol):
-    override: bool
-
-class A:
-    @overload
-    def fake_method(self: HasOverride) -> "A":
-        ...
-
-    @overload
-    def fake_method(self) -> Self:
-        ...
-
-    def fake_method(self) -> Self | "A":
-        if hasattr(self, 'override'):
-            return A()
-        return self
-
-class B(A):  # fake_method should return B
-    pass
-
-class C(A):  # fake_method should return A
-    override = True
-```
-
-Conversely, **false negatives** undermine system stability by permitting erroneous code to bypass validation. A critical safety gap involves
-Python's structural pattern matching, as identified in Mypy Issue #20018 [@mypy_issue_20018]. In this scenario, the static analyzer fails to
-flag a match statement that references a non-existent attribute of the standard library module itertools. While the type checker reports no
-errors, the code triggers an AttributeError immediately upon execution because the runtime attempts to resolve the invalid name.
-
-```{python}
-#| label: fig-match-error
-#| fig-cap: "An example of a false negative in Mypy involving structural pattern matching. The code references `itertools.DoesNotExist`, an attribute that does not exist in the module. While this code guarantees a runtime `AttributeError`, Mypy's static analysis successfully validates it without reporting any issues."
-
-import itertools
-
-def check(obj: object) -> None:
-    match obj:
-        case itertools.chain():
-            print("Chain")
-        # The 'itertools' module has no attribute 'DoesNotExist'.
-        # This line will raise an AttributeError at runtime.
-        case itertools.DoesNotExist():
-            print("This unreachable code crashes the program.")
-        case _:
-            print("Default")
-
-if __name__ == "__main__":
-    check(1)
-```
-
-Inherent Blind Spots Specific dynamic features of Python create unavoidable "blind spots" for static analyzers. These are scenarios where the
-tool loses track of a variable's type, leading to unsound assumptions:
-
-- **Runtime Metaprogramming**: Python allows code to modify its own structure during execution. Functions like `setattr()`, `eval()`, or
-  dynamic class decorators modify objects in ways that are invisible to a static parser. A type checker looking at the source code cannot
-  "see" the attributes added at runtime, often leading to false reports of `AttributeError`.
-
-```{python}
-#| label: fig-metaprogramming
-#| fig-cap: "An example of a universal false positive caused by runtime metaprogramming. The `setattr` function modifies the object structure during execution to add the `timeout` attribute. Despite the code executing successfully at runtime, Mypy, Pyrefly (v0.44.2), Zuban (v0.3.0), and Ty (v0.0.1a32) all incorrectly report an `attr-defined` or `missing-attribute` error."
-
-class DynamicConfig:
-    def __init__(self, settings: dict[str, int]) -> None:
-        for key, value in settings.items():
-            # Dynamically attach attributes based on dictionary keys
-            setattr(self, key, value)
-
-config = DynamicConfig({"timeout": 300})
-
-# Runtime: Prints 300 successfully.
-# Static Analysis: Error! "DynamicConfig" has no attribute "timeout".
-# Result: 4/4 Type Checkers produced a False Positive.
-print(config.timeout)
-```
-
-As shown in @fig-metaprogramming, this disconnect creates a persistent "blind spot" for static analysis. To verify the universality of this
-issue, we evaluated the code against the latest releases of the ecosystem's leading tools. **Pyrefly** (v0.44.2), **Zuban** (v0.3.0),
-**Ty** (v0.0.1a32), and **Mypy** (v1.19.0) all flag this valid code as an error, highlighting a regression in handling dynamic patterns within
-the modern ecosystem.
-
-As shown in @fig-metaprogramming, this disconnect between runtime behavior and static visibility is a frequent source of frustration for
-developers working with data-driven classes.
-
-- **Control Flow Ambiguity**: In dynamic code, a variable's type can change based on runtime conditions that are statically undecidable. For
-  example, a variable might be an `int` or a `str` depending on a random seed or user input. Type checkers attempt to handle this via "Type
-  Narrowing," but complex branching logic often causes the inference engine to widen the type to `Any` or `Union`, effectively losing precision.
-
-@fig-control-flow illustrates this breakdown. While the type checker knows `data_packet` is a `Union`, the subsequent function call strips this
-type information away, allowing a fatal `AttributeError` to pass silently.
-```{python}
-#| label: fig-control-flow
-#| fig-cap: "An example of control flow ambiguity compounded by `Any` propagation. The type of `data_packet` is determined by a random seed. Because the helper function `obscure_mutation` returns `Any`, the static analyzer loses track of the specific type (int, str, or list). Consequently, it permits the `.append()` method call, which causes a runtime crash in 2 out of 3 execution paths."
-
-import random
-from typing import Union, List, Any
-
-def complex_processing(seed: int) -> None:
-    data_packet: Union[int, str, List[str]]
-
-    # Branching logic determines the runtime type
-    if seed % 3 == 0:
-        data_packet = 1024
-    elif seed % 3 == 1:
-        data_packet = "Payload_Alpha"
-    else:
-        data_packet = ["header", "body", "footer"]
-
-    # The static analyzer tracks the Union up to here.
-    # But this function returns 'Any', erasing that knowledge.
-    def obscure_mutation(pkt: Any) -> Any:
-        if isinstance(pkt, int):
-            return str(pkt)
-        return pkt
-
-    processed_packet = obscure_mutation(data_packet)
-
-    # This line causes a runtime error if data_packet was not a list,
-    # but static analysis permits it because processed_packet is 'Any'.
-    # Result: AttributeError: 'str' object has no attribute 'append'
-    print(processed_packet.append("checksum"))
-
-complex_processing(random.randint(0, 100))
-```
-
-@fig-control-flow illustrates a critical failure mode where control flow ambiguity is compounded by type erasure. To determine if modern tools
-can look through this obfuscation, we executed the test case against **Mypy** (v1.19.0), **Pyrefly** (v0.44.2), **Zuban** (v0.3.0), and **Ty**
-(v0.0.1a32). The results were uniform: every tool failed to identify the risk. While the code is guaranteed to crash in two out of three
-execution paths (when the seed produces an integer or string), the static analyzers universally reported "Success," exposing a dangerous
-false negative caused by the propagation of the `Any` type.
-
-- **The "Any" Propagation**: The `Any` type in Python acts as an escape hatch for the type checker. Once a variable is inferred as `Any`
-  (often due to a missing annotation in a library), the checker ceases to validate operations on it. This creates a "blind spot" where errors
-  can propagate silently through the system, only to crash the program at runtime.
-
-@fig-any-propagation demonstrates this danger. The return type of the legacy function effectively turns off the type checker for the `record`
-variable, allowing a blatant `AttributeError` to pass unnoticed.
-
-```{python}
-#| label: fig-any-propagation
-#| fig-cap: "An illustration of the 'Any' propagation blind spot. Because `legacy_fetch_record` explicitly returns `Any`, the type checker disables validation for the `record` variable. Consequently, the invalid attribute access `record.process_id`—on what is actually a dictionary—is ignored statically but causes an immediate crash at runtime."
-
-from typing import Any
-
-def legacy_fetch_record() -> Any:
-    # Simulating a legacy function or library call
-    # that returns an unannotated dictionary.
-    return {"id": 101, "status": "active"}
-
-def system_pipeline() -> None:
-    record = legacy_fetch_record()
-
-    # The static analyzer sees 'record' as 'Any', so it permits
-    # arbitrary attribute access, even though 'dict' objects
-    # do not support dot notation.
-    user_id = record.process_id
-
-    # The Blind Spot: We perform a math operation on the result.
-    # Static Analysis: No Error (Passes)
-    # Runtime: AttributeError ('dict' object has no attribute 'process_id')
-    next_id = user_id + 1
-    return next_id
-
-system_pipeline()
-```
-
-@fig-any-propagation demonstrates this danger in a realistic scenario involving legacy code integration. The return type of legacy_fetch_record
-effectively turns off type checking for the record variable. To assess how modern tools handle this risk, we tested the code against **Mypy**
-(v1.19.0), **Pyrefly** (v0.44.2), **Zuban** (v0.3.0), and **Ty** (v0.0.1a32). The results confirmed a universal failure: every tool reported
-"Success" and "No issues found," completely missing the invalid attribute access that causes an immediate runtime crash. This illustrates how
-a single instance of Any can compromise the safety guarantees of the entire analysis pipeline.
+The core difficulty lies in a fundamental trade-off: gradual type systems intentionally sacrifice soundness for usability [@vitousek2014design].
+In type theory, a sound system guarantees that no ill-typed program is accepted (no false negatives), while a complete system ensures that no
+well-typed program is rejected (no false positives). Due to Python's highly dynamic features—such as runtime attribute modification, metaclass
+manipulation, and structural subtyping—achieving perfect soundness in gradual typing involves undecidable problems [@migeed2020decidable].As a
+result, practical type checkers rely on approximations, which creates opportunities for bugs and inconsistencies.
 
 ## Motivation
 
-The adoption of static type checkers in Python has grown significantly over the past years. Major technology companies and open-source projects
-have integrated type checking into their development workflows to catch bugs early in the development cycle [5, 6]. Tools like mypy, pyright,
-pyre, and pytype have become essential components in many Python projects' continuous integration pipelines [7, 8, 9]. As the reliance on these
-tools increases, so does the importance of their correctness and reliability.
+The Python typing ecosystem is experiencing a Cambrian explosion. Between mid-2024 and early 2025, the open-source community introduced several
+high-performance type checkers—pyrefly (Facebook), zuban, and ty (Astral, creators of ruff)—claiming execution speeds far superior to industry
+standards like mypy. Simultaneously, Python 3.12 and 3.13 introduced major new typing features, including PEP 695 type parameter syntax and
+PEP 742 TypeIs guards. This convergence creates a critical validation gap: new type checkers must correctly implement not only established
+features from a decade of PEPs (484, 544, 570, 586, 589, 591, 612, 647, 655, 673) but also bleeding-edge constructs that even mature tools
+struggle to handle.
 
-Recently, the open-source community has introduced several high-performance type checkers, including pyrefly, zuban, and ty [10, 11, 12].
-While these tools claim to offer superior execution speeds compared to industry standards, their correctness and reliability remain unverified.
-Crucially, there is currently no comprehensive framework benchmarking these emerging tools against established static analyzers. Furthermore,
-there is a distinct lack of research evaluating their behavior on newly generated code examples specifically designed to identify false
-positive reports.
+Type checker correctness directly impacts software quality and developer productivity. When developers trust a type checker to validate their
+code, they expect accurate identification of genuine type errors without flagging correct code as erroneous. A type checker that produces
+excessive false positives leads to warning fatigue—developers begin ignoring alerts or adding unnecessary annotations to silence the tool,
+defeating the purpose of static analysis. Conversely, false negatives provide a dangerous illusion of safety: developers believe their code is
+type-safe when runtime TypeErrors lurk in production. As the reliance on these tools in continuous integration pipelines grows, so does the
+importance of their correctness.
 
-When developers trust a type checker to validate their code, they expect the tool to accurately identify genuine type errors while not flagging
-correct code as erroneous. A type checker that produces too many false positives can lead to developer frustration and eventual abandonment of
-the tool, a phenomenon known as warning fatigue [13]. Developers may start ignoring warnings or adding unnecessary type annotations to silence
-the checker, which defeats the purpose of static analysis. On the other hand, a type checker that produces false negatives provides a false
-sense of security. Developers might believe their code is type-safe when it actually contains bugs that could manifest at runtime and
-potentially cause system failures in production environments [3].
+Yet these new tools remain largely unverified against real-world bug patterns. The Python Typing Council maintains an official conformance
+test suite [@typing_conformance] that validates type checker behavior against the Python typing specification. While pyrefly has been added to
+this suite, ty (currently in beta) has not yet been officially included, and independent testing shows significant variation in specification
+compliance: ty passes approximately 15% of test cases, pyrefly 58%, and zuban 69% [@sinon2025conformance]. However, specification compliance
+testing addresses only part of the validation problem. The conformance suite focuses on validating that type checkers correctly implement
+prescribed PEP behaviors—testing whether tools follow the specification—rather than proactively generating novel test cases based on patterns
+derived from historical bugs. There is currently no systematic approach to creating adversarial examples that expose latent issues before users
+encounter them in production. The traditional approach to finding type checker bugs—waiting for users to encounter edge cases during
+development and report them—is fundamentally reactive and slow. According to Oh and Oh's analysis of the PyTER benchmark, type-related bugs
+persist for an average of 82 days in production codebases, with 30% requiring over a month to fix. This reactive approach cannot keep pace with
+the rapid introduction of new language features and type checkers.
 
-The Python type system has evolved considerably since the introduction of type hints in PEP 484 [14]. New features such as protocols, type
-guards, variadic generics, and the `@member` decorator for enums have been added to the language [15, 16, 17]. Each new feature introduces
-additional complexity that type checkers must handle correctly. As demonstrated in the examples provided in the introduction, even mature type
-checkers like mypy can struggle with these newer constructs. This ongoing evolution of the type system creates a continuous need for testing
-and validation of type checker implementations.
+Existing automated testing approaches have well-documented limitations. Random fuzzing excels at generating syntactically valid code and
+detecting memory errors, but research has shown it struggles to trigger subtle semantic bugs that require specific preconditions or sequences
+of operations [@xu2019hydra; @kim2024robofuzz]. Manually curated test suites, while high-quality, face inherent scalability challenges as
+system complexity grows and new features are added. What is needed is an approach that combines the coverage of automated generation with the
+semantic richness of real-world bug patterns.
 
-Furthermore, the dynamic nature of Python presents a fundamental theoretical challenge for static analysis: the trade-off between soundness
-and completeness. In type theory, a sound system guarantees that no ill-typed program is accepted (no false negatives), while a complete
-system ensures that no well-typed program is rejected (no false positives). Due to Python's highly dynamic features—such as runtime class
-modification, eval, and the extensive use of the Any type—achieving perfect soundness is computationally undecidable [@siek2015refined].
-Consequently, practical type checkers must rely on the principles of Gradual Typing, which intentionally relaxes soundness guarantees to
-maintain usability [@vitousek2014design]. This inherent compromise creates a fragile boundary where inconsistencies and "soundness holes"
-frequently emerge, further necessitating the need for rigorous automated testing.
-
-Currently, the process of finding bugs in type checkers relies heavily on user-reported issues and manual test case creation by the development
-teams. This approach has limitations because it depends on users encountering edge cases during their regular development work and taking the
-time to report them. Many bugs in type checkers may go undetected for extended periods simply because no one has written code that triggers
-them. Our automated approach to re-generate test cases based on closed GitHub issues from type checkers that can expose false positives and
-false negatives would complement the existing testing strategies and help identify issues before users encounter them. Furthermore, the
-diversity of type checkers available for Python means that the same code can produce different results across different tools. Understanding
-these differences and identifying cases where type checkers disagree can help both developers choose the right tool for their needs and type
-checker maintainers improve consistency across the ecosystem.
-
-This research is motivated by the need to systematically improve the quality of Python type checkers through automated testing.
-By developing a tool that can generate test cases capable of triggering false reports, we aim to reduce the burden on type checker development
-teams and ultimately improve the reliability of static type analysis in Python.
+Our key insight is that closed GitHub issues from type checker repositories represent ideal seeds for proactively generating novel test cases.
+Unlike random code, these issues encode confirmed, fixed bugs—real edge cases that developers already encountered and that tool maintainers
+deemed important enough to patch. By mining issues from python/mypy, facebook/pyre, astral-sh/ty, and microsoft/pyright, we obtain a curated
+dataset of problematic patterns spanning protocols (PEP 544), TypedDict totality (PEP 589), ParamSpec decorators (PEP 612), type guards
+(PEP 647), and other advanced constructs. By using these historical patterns as seeds for automated mutation, we can generate entirely new
+test cases that expose similar latent bugs before users encounter them in production.
 
 ### The Importance of Using Automated Test Generation
 
