@@ -65,10 +65,11 @@ semantic richness of real-world bug patterns.
 
 Our key insight is that closed GitHub issues from type checker repositories represent ideal seeds for proactively generating novel test cases.
 Unlike random code, these issues encode confirmed, fixed bugs—real edge cases that developers already encountered and that tool maintainers
-deemed important enough to patch. By mining issues from python/mypy, facebook/pyre, astral-sh/ty, and microsoft/pyright, we obtain a curated
-dataset of problematic patterns spanning protocols (PEP 544), TypedDict totality (PEP 589), ParamSpec decorators (PEP 612), type guards
-(PEP 647), and other advanced constructs. By using these historical patterns as seeds for automated mutation, we can generate entirely new
-test cases that expose similar latent bugs before users encounter them in production.
+deemed important enough to patch. By mining issues from python/mypy, facebook/pyrefly, astral-sh/ty, microsoft/pyright, and zubanls/zuban, we
+obtain a curated dataset of problematic patterns spanning protocols (PEP 544), TypedDict totality (PEP 589), ParamSpec decorators (PEP 612),
+type guards (PEP 647), and other advanced constructs. By using these historical patterns as seeds for automated mutation, we generate entirely
+new test cases that cause disagreements between checkers. Since disagreement implies at least one checker is incorrect, this approach exposes
+latent bugs in type checker implementations—enabling maintainers to fix edge cases proactively, before users encounter them in production.
 
 ### The Importance of Using Automated Test Generation
 
