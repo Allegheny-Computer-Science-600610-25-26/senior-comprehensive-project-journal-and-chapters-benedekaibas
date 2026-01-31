@@ -71,6 +71,14 @@ type guards (PEP 647), and other advanced constructs. By using these historical 
 new test cases that cause disagreements between checkers. Since disagreement implies at least one checker is incorrect, this approach exposes
 latent bugs in type checker implementations—enabling maintainers to fix edge cases proactively, before users encounter them in production.
 
+Pytifex implements this "bug-seeded mutation" strategy by feeding 3–5 real bug examples to a large language model (Gemini), which generates
+novel code variations targeting similar typing patterns. The tool iterates until it collects the requested number of disagreement examples,
+meaning 100% of output examples are guaranteed disagreements—though reaching that count may require multiple generation loops depending on seed
+quality. In preliminary experiments, approximately 58% of generated examples per batch successfully triggered disagreements (11 of 19 in one
+batch). This efficiency aligns with prior work showing that bug-seeded approaches significantly outperform random generation: Patra & Pradel
+(FSE 2021) demonstrated that semantic bug seeding improved detection rates from 7% to 53% compared to artificial mutation. The curated GitHub
+seeds provide the semantic guidance necessary to hit genuine type system edge cases.
+
 ### The Importance of Using Automated Test Generation
 
 According to Oh and Oh [@oh2022pyter], the timeline for resolving type errors varies significantly: while 31.4% of reported errors are patched
