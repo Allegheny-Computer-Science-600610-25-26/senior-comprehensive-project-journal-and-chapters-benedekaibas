@@ -13,9 +13,27 @@ is performed on an incompatible data type, account for a significant portion of 
 
 ## The Challange of Building and Maintaining Python Type Checkers
 
-While the concept of static analysis is mature in languages like C, C++ or Java, implementing a robust type checker for Python presents unique
-and significant engineering challenges. Unlike statically typed languages where variable types are resolved at compile-time, Python is
+While the concept of static analysis is mature in languages like C, C++, and Java, implementing a robust type checker for Python presents
+unique and significant engineering challenges. Unlike statically typed languages where variable types are resolved at compile-time, Python is
 inherently dynamic. This flexibility, while beneficial for developer velocity, creates a hostile environment for static verification.
+
+**Runtime Metaprogramming and Reflection**. Python allows extensive runtime manipulation through features like `setattr()`, `eval()`, and
+dynamic decorators. As Ren and Foster note, "prior approaches have trouble dealing with metaprogramming, which generates code as the program
+executes" [@ren2016hummingbird]. This problem is particularly acute in frameworks like Django and Flask that rely heavily on such features. A
+type checker analyzing source code cannot "see" attributes or methods added at runtime, leading to false reports of missing attributes even
+when the code executes successfully.
+
+**Dynamic Language Features and Type Inference Limitations**. Static type checkers are constrained by dynamic language features such as runtime
+type changes, reflection, monkey patching, and dynamic code generation [@hassan2018maxsmt; @peng2022static]. When encountering such features,
+checkers must conservatively over-approximate, often inferring `Any` types that reduce their ability to catch real bugs. Empirical studies
+confirm that reflection and introspection are pervasive in real-world Python codebases—Gao et al. found that 10.86% of functions across 35
+popular projects used such features [@gao2021empirical]—making this limitation practically significant.
+
+**The Any Type Escape Hatch**. The `Any` type in Python's gradual type system acts as an escape hatch that disables type checking. Once a
+variable is inferred as `Any`—often due to missing annotations in third-party libraries or interaction with untyped code—the checker ceases to
+validate operations on it. This creates a blind spot where errors propagate silently through the codebase without detection. More broadly,
+analysis of 2,766 type error fixes from real-world Python projects confirms that type errors remain a persistent challenge even in annotated
+code [Chow et al. 2024].
 
 ## The Complexity of Gradual Typing and Type Checker Soundness
 
@@ -83,8 +101,8 @@ Pytifex uses runtime testing as its primary oracle for establishing ground truth
 any checker that reported "OK" is definitively wrong—a false negative. This provides an objective, automated oracle that scales to thousands
 of examples without human judgment. Consensus-based approaches fail when all tools share the same blind spot; manual review is expensive and
 subjective. Runtime crashes admit no such ambiguity: the code either fails or it doesn't. However, this oracle is asymmetric: we can
-definitively prove false negatives (missed bugs), but cannot prove false positives (spurious errors) in all cases since code may run
-successfully without triggering every potential bug path.
+definitively prove false negatives (missed bugs), but cannot always prove false positives (spurious errors)—code may run successfully without
+triggering every potential bug path.
 
 This research is motivated by the need for systematic, automated evaluation of the rapidly evolving Python type checker ecosystem. Unlike
 reactive approaches that wait for users to discover bugs, Pytifex proactively generates novel adversarial test cases from historical bug
