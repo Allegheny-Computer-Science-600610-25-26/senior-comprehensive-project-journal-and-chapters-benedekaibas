@@ -79,14 +79,12 @@ batch). This efficiency aligns with prior work showing that bug-seeded approache
 (FSE 2021) demonstrated that semantic bug seeding improved detection rates from 7% to 53% compared to artificial mutation [@patra2021semseed].
 The curated GitHub seeds provide the semantic guidance necessary to hit genuine type system edge cases.
 
-
-
 Pytifex uses runtime testing as its primary oracle for establishing ground truth. When generated code crashes with a type-related exception,
 any checker that reported "OK" is definitively wrong—a false negative. This provides an objective, automated oracle that scales to thousands
 of examples without human judgment. Consensus-based approaches fail when all tools share the same blind spot; manual review is expensive and
 subjective. Runtime crashes admit no such ambiguity: the code either fails or it doesn't. However, this oracle is asymmetric: we can
-definitively prove false negatives (missed bugs), but cannot prove false positives (spurious errors) since code may run successfully without
-triggering every potential bug path.
+definitively prove false negatives (missed bugs), but cannot prove false positives (spurious errors) in all cases since code may run
+successfully without triggering every potential bug path.
 
 This research is motivated by the need for systematic, automated evaluation of the rapidly evolving Python type checker ecosystem. Unlike
 reactive approaches that wait for users to discover bugs, Pytifex proactively generates novel adversarial test cases from historical bug
