@@ -76,8 +76,10 @@ novel code variations targeting similar typing patterns. The tool iterates until
 meaning 100% of output examples are guaranteed disagreements—though reaching that count may require multiple generation loops depending on seed
 quality. In preliminary experiments, approximately 58% of generated examples per batch successfully triggered disagreements (11 of 19 in one
 batch). This efficiency aligns with prior work showing that bug-seeded approaches significantly outperform random generation: Patra & Pradel
-(FSE 2021) demonstrated that semantic bug seeding improved detection rates from 7% to 53% compared to artificial mutation. The curated GitHub
-seeds provide the semantic guidance necessary to hit genuine type system edge cases.
+(FSE 2021) demonstrated that semantic bug seeding improved detection rates from 7% to 53% compared to artificial mutation [@patra2021semseed].
+The curated GitHub seeds provide the semantic guidance necessary to hit genuine type system edge cases.
+
+
 
 Pytifex uses runtime testing as its primary oracle for establishing ground truth. When generated code crashes with a type-related exception,
 any checker that reported "OK" is definitively wrong—a false negative. This provides an objective, automated oracle that scales to thousands
