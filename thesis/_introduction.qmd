@@ -71,6 +71,7 @@ code, they expect accurate identification of genuine type errors without flaggin
 excessive false positives leads to warning fatigue—developers begin ignoring alerts or adding unnecessary annotations to silence the tool,
 defeating the purpose of static analysis. Conversely, false negatives provide a dangerous illusion of safety: developers believe their code is
 type-safe when runtime TypeErrors lurk in production.
+
 Figure 1 illustrates such a case:
 ```{python}
 import itertools
@@ -105,7 +106,7 @@ The current validation paradigm relies heavily on user-reported bugs, which crea
 detection. Oh and Oh found that type checker bugs persist for an average of 82 days, with 30% taking longer than a month to fix [@oh2022pyter].
 This reactive approach cannot keep pace with the rapid introduction of new features—Python 3.12 and 3.13 alone introduced PEP 695
 (type parameter syntax) and PEP 742 (narrowing types), each creating new opportunities for type checker bugs to emerge. There is currently no
-systematic approach to proactively generating test cases that expose these bugs before users encounter them in production. 
+systematic approach to proactively generating test cases that expose these bugs before users encounter them in production.
 
 Existing automated testing approaches have well-documented limitations. Random fuzzing excels at generating syntactically valid code and
 detecting memory errors, but research has shown it struggles to trigger subtle semantic bugs that require specific preconditions or sequences
