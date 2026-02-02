@@ -35,17 +35,27 @@ validate operations on it. This creates a blind spot where errors propagate sile
 analysis of 2,766 type error fixes from real-world Python projects confirms that type errors remain a persistent challenge even in annotated
 code [Chow et al. 2024].
 
+**Optional Annotations and Partial Coverage**. Unlike statically typed languages such as Java or Rust, Python's type annotations are entirely
+optional and unchecked at runtime [@vitousek2014design]. Developers add annotations incrementally, resulting in partially annotated codebases
+where some functions have complete type information while others have none [@digrazia2022evolution]. When data flows from an untyped context
+into a typed context, the checker must make assumptions that can lead to both false positives (rejecting valid code) and false negatives
+(accepting type-incorrect code) [@khan2021empirical].
+
+These challenges are not merely implementation difficulties—they reflect fundamental theoretical limitations in bringing static analysis to
+dynamic languages, which we explore in the next section.
+
 ## The Complexity of Gradual Typing and Type Checker Soundness
 
-Building a type checker is not simply about enforcing rules; it is about navigating fundamental theoretical limitations. Python implements
-gradual typing [@siek2015refined], a system that allows developers to incrementally add type annotations to their code. However, even when code
-is fully annotated, Python's dynamic runtime semantics create inherent challenges for static verification.
+Building a type checker for Python requires navigating fundamental theoretical limitations. Python implements gradual typing
+[@siek2015refined], a system that allows developers to incrementally add type annotations to their code. However, even when code is fully
+annotated, Python's dynamic runtime semantics create inherent challenges for static verification.
 
-The core difficulty lies in a fundamental trade-off: gradual type systems intentionally sacrifice soundness for usability [@vitousek2014design].
-In type theory, a sound system guarantees that no ill-typed program is accepted (no false negatives), while a complete system ensures that no
-well-typed program is rejected (no false positives). Due to Python's highly dynamic features—such as runtime attribute modification, metaclass
-manipulation, and structural subtyping—achieving perfect soundness in gradual typing involves undecidable problems [@migeed2020decidable].As a
-result, practical type checkers rely on approximations, which creates opportunities for bugs and inconsistencies.
+The core difficulty lies in a fundamental trade-off: gradual type systems intentionally sacrifice soundness for usability
+[@vitousek2014design]. In type theory, a sound system guarantees that no ill-typed program is accepted (no false negatives), while a complete
+system ensures that no well-typed program is rejected (no false positives). Due to Python's highly dynamic features—such as runtime attribute
+modification, metaclass manipulation, and structural subtyping—achieving perfect soundness involves undecidable problems
+[@migeed2020decidable]. As a result, practical type checkers rely on approximations, and different checkers make different
+approximations—leading to the disagreements this work aims to expose.
 
 ## Motivation
 
@@ -64,16 +74,15 @@ type-safe when runtime TypeErrors lurk in production. As the reliance on these t
 importance of their correctness.
 
 Yet these new tools remain largely unverified against real-world bug patterns. The Python Typing Council maintains an official conformance
-test suite [@typing_conformance] that validates type checker behavior against the Python typing specification. While pyrefly has been added to
-this suite, ty (currently in beta) has not yet been officially included, and independent testing shows significant variation in specification
-compliance: ty passes approximately 15% of test cases, pyrefly 58%, and zuban 69% [@sinon2025conformance]. However, specification compliance
-testing addresses only part of the validation problem. The conformance suite focuses on validating that type checkers correctly implement
-prescribed PEP behaviors—testing whether tools follow the specification—rather than proactively generating novel test cases based on patterns
-derived from historical bugs. There is currently no systematic approach to creating adversarial examples that expose latent issues before users
-encounter them in production. The traditional approach to finding type checker bugs—waiting for users to encounter edge cases during
-development and report them—is fundamentally reactive and slow. According to Oh and Oh's analysis of the PyTER benchmark, type-related bugs
-persist for an average of 82 days in production codebases, with 30% requiring over a month to fix. This reactive approach cannot keep pace with
-the rapid introduction of new language features and type checkers.
+test suite [@typing_conformance] that validates type checker behavior against the Python typing specification. While established tools like
+pyrefly are included, newer implementations like ty (currently in beta) are not yet part of the conformance testing framework. When these tools
+are evaluated, conformance scores vary dramatically: ty achieves only 15% conformance, pyrefly 58%, and zuban 69% [@sinon2025conformance].
+However, conformance scores measure adherence to the specification, not robustness against real-world bugs that fall outside the spec's scope.
+The current validation paradigm relies heavily on user-reported bugs, which creates a substantial time lag between bug introduction and
+detection. Oh and Oh found that type checker bugs persist for an average of 82 days, with 30% taking longer than a month to fix [@oh2022pyter].
+This reactive approach cannot keep pace with the rapid introduction of new features—Python 3.12 and 3.13 alone introduced PEP 695
+(type parameter syntax) and PEP 742 (narrowing types), each creating new opportunities for type checker bugs to emerge. There is currently no
+systematic approach to proactively generating test cases that expose these bugs before users encounter them in production. 
 
 Existing automated testing approaches have well-documented limitations. Random fuzzing excels at generating syntactically valid code and
 detecting memory errors, but research has shown it struggles to trigger subtle semantic bugs that require specific preconditions or sequences
@@ -110,81 +119,45 @@ patterns, identifying correctness issues before they impact production codebases
 confidence and provides type checker maintainers with concrete, actionable feedback to improve consistency across the ecosystem. As Python's
 type system continues to evolve and new tools proliferate, such proactive automated validation becomes not just useful but essential.
 
-### The Importance of Using Automated Test Generation
-
-According to Oh and Oh [@oh2022pyter], the timeline for resolving type errors varies significantly: while 31.4% of reported errors are patched
-within a single day, 29.4% require more than a month to resolve. Furthermore, bugs included in the PyTER benchmark [@oh2022pyter] persisted for
-an average of 82 days, with approximately 30% taking longer than a month to fix.
-
-These statistics indicate that the manual identification and reporting of type-related issues in open-source projects is a slow,
-resource-intensive process. This latency is particularly problematic given the rapid evolution of the Python programming language, which
-frequently introduces new syntax and features [@pep602]. To maintain effective type error detection, type checkers must be developed and
-updated concurrently with these language changes. Reliance on manual testing and user reports following a new Python release is inherently
-reactive and time-consuming, preventing the ecosystem from adopting a proactive stance toward type safety.
-
-### Current State of the Art
-
-Current research into Python static typing is diverse, encompassing empirical studies on type checkers usage [@khan2022empirical], comparative
-analyses of tool performance [@oh2024towards], and the application of fuzzing techniques for bug detection [@xifaras2025enumerative]. While
-these distinct lines of inquiry exist, there is a significant gap in the literature: currently, no study integrates automated fuzzing with
-empirical analysis to systematically evaluate the reliability of the most well known type checkers.
-
-Historically, the dynamic nature of Python has presented inherent challenges for static analysis, often limiting its reach across the broader
-spectrum of Python users. However, a noticeable shift is occurring within the industry. Major technology firms and large-scale open-source
-projects are increasingly integrating static typing [@distefano2019scaling] to ensure maintainability and prevent regressions in massive
-codebases. This growing demand has catalyzed the development of numerous new type checkers, yet the rigor of their validation remains an open
-question.
-
-#### Addressing The Gap
-
-Despite advancements in static analysis, there is currently no research or automated tooling that systematically generates high-level code
-examples derived from closed issue reports from type checkers. Specifically, current researches have not targeted the automated ingestion of
-previously submitted issues to refine—or mutate—them into new test cases designed to trigger false reports. This leads to reliability issues
-when it comes to use type checkers.
-
 ## Proposed Solution: Pytifex
 
-To address the reliability issues inherent in these complex inference engines, this research proposes Pytifex, an automated differential
-testing framework designed to validate Python type checkers.
+To address the validation gap in emerging Python type checkers, we present Pytifex, an automated differential testing agent that proactively
+generates test cases designed to expose disagreements between type checkers. Unlike conformance testing, which validates specification
+compliance, or reactive approaches that wait for user reports, Pytifex employs a bug-seeded mutation strategy: it mines closed issues from type
+checker repositories, extracts real-world bug patterns, and uses these as seeds to generate novel code variations via a large language model.
 
-*What is Pytifex?* Pytifex employs a data-driven differential testing methodology to uncover soundness gaps in static analyzers. Unlike
-traditional unit testing, which requires a pre-defined expected output (an oracle), Pytifex generates adversarial test cases and executes them
-against a suite of type checkers—specifically Mypy, Pyrefly, Zuban, and Ty. By comparing the diagnostic reports of these distinct
-implementations against each other and against the actual Python runtime behavior, Pytifex identifies divergence that indicate potential
-bugs in type checkers.
+The key insight is that bugs tend to cluster around specific language features and edge cases. By learning from historical bugs—cases where
+type checkers previously disagreed or failed—Pytifex can systematically explore the space of potential disagreements. When the tool generates
+code that causes different type checkers to produce conflicting results (e.g., mypy reports an error while pyrefly accepts the code), this
+signals either a bug in one checker or an ambiguity in the specification.
 
-**Generation via Mutation Strategy** To generate these test cases, Pytifex utilizes a mutation-based approach. It bridges the gap between
-theoretical fuzzing and real-world usage by mining closed GitHub issues from major type checker repositories. Using these historical false
-reports as "seeds," it applies structural mutations to generate new code examples. This generation process targets two distinct failure modes:
+Pytifex validates its findings using a runtime testing oracle: if generated code crashes with a TypeError, KeyError, or AttributeError at
+runtime, this definitively proves a false negative—at least one type checker should have caught the error statically but failed to do so. This
+oracle is asymmetric (we can prove false negatives but not always false positives), but it provides concrete evidence of false negatives
+without requiring manual inspection.
 
- - **Valid Variations (*False Positive* Detection)**: The tool generates semantically correct code that executes successfully in the Python
-   runtime. If a type checker rejects this code while others accept it (or while the runtime succeeds), Pytifex flags a potential False
-   Positive.
+We evaluate Pytifex on four type checkers spanning the maturity spectrum: the established mypy (v1.19.1), the recently released pyrefly
+(v0.50.1) and zuban (v0.4.2), and the alpha-stage ty (v0.0.1-alpha.32). Pytifex achieves a 58% per-batch success rate in generating
+disagreement-triggering code. Crucially, the agent iterates until the requested number of disagreements is collected, guaranteeing that 100% of
+output examples represent genuine type checker conflicts—efficiency we attribute to the semantic guidance of historical bug patterns.
 
-- **Invalid Variations (*False Negative* Detection)**: The tool generates code that is syntactically correct but contains runtime logic errors,
-  such as invalid attribute access. If a type checker accepts this code while others reject it (or while the runtime crashes), Pytifex flags a
-  potential False Negative.
+## Contributions
 
-**Research Significance** This differential approach is critical because it bypasses the "Oracle Problem"—the inherent difficulty of
-establishing a ground truth for static analysis. Specifically, it addresses the challenge of verifying whether a type checker provides the
-correct diagnostic for a given code example that either leads to a complex problem or is itself complex code.
+1. **Pytifex, the first automated differential testing agent for Python type checkers** that proactively generates test cases to expose
+implementation disagreements, rather than waiting for user-reported bugs.
 
-By leveraging the consensus between established tools and the actual Python runtime, Pytifex eliminates the need for a manual oracle. It can
-expose regressions and latent inconsistencies that random testing would miss, targeting the specific "blind spots" developers have already
-encountered and effectively weaponizing historical data to improve future tool stability.
+2. **A bug-seeded mutation methodology** that mines historical bug reports from type checker repositories and uses LLM-guided generation to
+produce semantically meaningful test cases. We achieve a 58% per-batch success rate, with 100% of output examples guaranteed to represent
+genuine disagreements.
 
-**Evaluation Methodology** The effectiveness of Pytifex will be evaluated through an empirical study comparing the latest versions of Mypy, 
-Pyrefly, Zuban, and Ty. The evaluation will focus on three key metrics:
+3. **A runtime oracle for ground truth** that definitively identifies false negatives without manual inspection—when generated code crashes
+with a type error, we prove which checker failed to catch it statically.
 
-    1. **False Report Rate**: The frequency with which the generated test cases successfully trigger a demonstrable False Positive (rejecting
-       valid code) or False Negative (accepting invalid code) in the target type checkers.
+4. **An empirical evaluation demonstrating Pytifex's effectiveness** at exposing type checker disagreements and identifying false negatives
+through runtime validation. We characterize four major disagreement patterns across TypedDict handling, generic Self types, NewType validation,
+and TypeGuard soundness—areas where checkers frequently diverge.
 
-    2. **Discrepancy Rate**: The frequency with which Pytifex identifies inconsistencies between the tools (e.g., Mypy accepts the code, but
-       Pyright rejects it).
+5. **Open-source release of Pytifex and our generated test suite** at [https://github.com/benedekaibas/pytifex-demo], enabling reproduction
+and future research on type checker validation.
 
-    3. **Validity of Reports**: A manual qualitative analysis of the generated reports to determine if they represent genuine bugs in the type
-       checkers or limitations of the Python type system.
-
-By answering these questions, this research aims to provide a robust framework for improving the correctness of the Python static analysis
-ecosystem.
 
