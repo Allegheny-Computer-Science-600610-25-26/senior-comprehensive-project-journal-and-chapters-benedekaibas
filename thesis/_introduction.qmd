@@ -70,8 +70,31 @@ Type checker correctness directly impacts software quality and developer product
 code, they expect accurate identification of genuine type errors without flagging correct code as erroneous. A type checker that produces
 excessive false positives leads to warning fatigue—developers begin ignoring alerts or adding unnecessary annotations to silence the tool,
 defeating the purpose of static analysis. Conversely, false negatives provide a dangerous illusion of safety: developers believe their code is
-type-safe when runtime TypeErrors lurk in production. As the reliance on these tools in continuous integration pipelines grows, so does the
-importance of their correctness.
+type-safe when runtime TypeErrors lurk in production.
+Figure 1 illustrates such a case:
+```{python}
+import itertools
+
+def check(obj: object) -> None:
+    match obj:
+        case itertools.chain():
+            print("Chain")
+        case itertools.DoesNotExist():  # AttributeError at runtime!
+            print("Unreachable")
+        case _:
+            print("Default")
+
+if __name__ == "__main__":
+    check(1)  # Crashes: 'module' object has no attribute 'DoesNotExist'
+```
+**Figure 1:** A false negative in mypy: pattern matching against a non-existent attribute passes type checking but crashes at runtime with an
+AttributeError.
+
+The code in Figure 1 passes type checking in mypy without warnings, yet crashes at runtime with an AttributeError—the `itertools` module has no
+DoesNotExist attribute. This is a classic false negative: the type checker's static analysis failed to catch that the pattern match references
+a non-existent class, providing developers with false confidence in code correctness.
+
+As the reliance on these tools in continuous integration pipelines grows, so does the importance of their correctness.
 
 Yet these new tools remain largely unverified against real-world bug patterns. The Python Typing Council maintains an official conformance
 test suite [@typing_conformance] that validates type checker behavior against the Python typing specification. While established tools like
@@ -160,4 +183,14 @@ and TypeGuard soundness—areas where checkers frequently diverge.
 5. **Open-source release of Pytifex and our generated test suite** at [https://github.com/benedekaibas/pytifex-demo], enabling reproduction
 and future research on type checker validation.
 
+## Paper Organization
 
+The remainder of this paper is organized as follows. **Section 2** surveys related work in differential testing, type checker validation, and
+LLM-based test generation, positioning Pytifex within the broader landscape of static analyzer testing. **Section 3** describes our methodology
+in three parts: (1) mining closed GitHub issues from type checker repositories to extract real bug patterns, (2) using LLM-guided mutation to
+generate novel test cases that target similar edge cases, and (3) establishing ground truth for evaluating type checker correctness through a
+runtime oracle combining execution tracing, beartype enforcement, and Hypothesis property-based testing. **Section 4** presents our evaluation
+on four type checkers—mypy, pyrefly, zuban, and ty—analyzing disagreement patterns and runtime-proven false negatives across advanced typing
+features including TypedDict totality, generic Self types, NewType validation, and TypeGuard soundness. **Section 5** discusses limitations,
+including the oracle's asymmetry in proving false negatives versus false positives, and outlines directions for enhancing Pytifex's evaluation
+methodology and expanding bug detection coverage.
