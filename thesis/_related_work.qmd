@@ -41,7 +41,7 @@ cannot change from a number to a string halfway through the function.
 square x = x * x
 
 main = print (square 5)
--- The type of 'x' is mathematically fixed as a Number.
+- The type of 'x' is mathematically fixed as a Number.
 ```
 
 Python, however, necessitates a more complex approach known as flow-sensitive analysis. Because a variable `x` can change its type throughout
@@ -177,4 +177,3 @@ formal models [@xifaras2025enumerative] or manual test suites. There is currentl
 type checker projects—specifically the reports made by human developers identifying false diagnostics originating from type checkers—to
 systematically seed a differential testing engine. Pytifex addresses this void by synthesizing the historical insights of MSR with the
 bug-finding capabilities of differential testing and mutation analysis.
-
