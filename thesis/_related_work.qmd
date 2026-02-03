@@ -26,3 +26,5 @@ requirements; manual suites encode previously discovered patterns; user reports 
 generating novel test cases that expose latent bugs before users encounter them in production. This gap motivates the need for automated, adversarial test generation that
 can proactively explore the space of potential type checker disagreements.
 
+## Differential Testing for Static Analyzers
+
