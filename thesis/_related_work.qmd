@@ -28,3 +28,23 @@ can proactively explore the space of potential type checker disagreements.
 
 ## Differential Testing for Static Analyzers
 
+Differential testing, formalized by McKeeman in 1998, is a methodology for detecting bugs by providing identical input to multiple implementations of the same specification and identifying
+discrepancies in their outputs [@mckeeman1998differential]. Unlike traditional testing, which requires an oracle—a known correct answer for each test case—differential testing exploits the principle
+that consensus among independent implementations provides evidence of correctness. This approach is particularly valuable for domains like compilers and type checkers, where determining the correct
+output for arbitrary inputs is difficult and constructing test oracles is expensive [@yang2011finding]. When implementations disagree, at least one must be incorrect, enabling bug detection without
+manual verification.
+
+Yang et al. demonstrated the effectiveness of differential testing for compiler validation with Csmith, a random C program generator that found over 325 previously unknown bugs in mature compilers
+including GCC and LLVM [@yang2011finding]. Their approach generated syntactically valid C programs, compiled them with multiple compilers, and compared outputs. Disagreements indicated compiler bugs,
+which were confirmed by examining the generated assembly or consulting language specifications. Critically, Yang et al. found that differential testing revealed bugs missed by extensive manual test
+suites, suggesting that consensus-based testing exposes edge cases that structured testing overlooks.
+
+The technique has proven effective beyond compilers. Rigger and Su applied differential testing to database management systems, finding bugs in SQLite, MySQL, and PostgreSQL by generating semantically
+equivalent SQL queries and comparing results [@rigger2020finding]. Kapus and Cadar used differential testing to validate symbolic execution engines, identifying disagreements between KLEE, S2E, and
+other tools [@kapus2019differential]. These successes demonstrate that differential testing generalizes to any domain with multiple independent implementations of a common specification.
+
+Python type checkers present an ideal target for differential testing. Multiple implementations (mypy, pyrefly, zuban, ty) claim to implement the same typing specification, yet they differ in maturity,
+implementation language, and optimization strategies. When these tools disagree on whether code is type-correct, the disagreement signals either a specification ambiguity or an implementation bug.
+However, a critical limitation emerges: unlike compilers where runtime execution provides ground truth, type checker disagreements alone cannot determine which tool is correct. This motivates the need
+for an independent oracle—a challenge we address through runtime testing.
+
