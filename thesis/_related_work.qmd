@@ -50,8 +50,8 @@ semantics that can be compared at runtime—a property that type checker outputs
 
 Beyond compiler validation, differential testing has proven effective across diverse domains. Rigger and Su applied differential testing to database management systems, finding bugs in SQLite,
 MySQL, and PostgreSQL by generating semantically equivalent SQL queries and comparing results [@rigger2020finding]. Kapus and Cadar used differential testing to validate symbolic execution engines,
-identifying disagreements between KLEE, S2E, and other tools [@kapus2019differential]. These successes demonstrate that differential testing generalizes to any domain with multiple independent
-implementations of a common specification.
+identifying disagreements between symbolic execution engines including KLEE and S2E [@kapus2019differential]. These successes demonstrate that differential testing generalizes to any domain with
+multiple independent implementations of a common specification.
 
 For type systems specifically, differential testing has seen limited but promising application. Work on TypeScript type checkers has compared implementations to find inference bugs, though 
 TypeScript's structural typing and JavaScript runtime semantics differ substantially from Python's gradual typing model. PyTER [@oh2022pyter] studied Python type checker bugs through issue mining
@@ -68,34 +68,40 @@ arbiter that neither manual analysis nor specification consultation requires.
 ## Automated Test Generation
 
 Automated test generation techniques have proven effective at discovering bugs in software systems, offering an alternative to manual test construction that can explore program behaviors
-systematically. These techniques broadly fall into three categories: mutation-based fuzzing, grammar-based fuzzing, and constraint-based approaches.
+systematically. These techniques broadly fall into three categories—mutation-based fuzzing, grammar-based fuzzing, and constraint-based approaches—with recent work exploring large language models
+as a complementary technique.
 
 Mutation-based fuzzing generates test inputs by randomly modifying seed inputs, observing program behavior on the mutated inputs. Coverage-guided greybox fuzzing, exemplified by tools like American
 Fuzzy Lop (AFL), enhances this approach by using code coverage feedback to guide mutation toward unexplored program paths [@bohme2016coverage]. Böhme et al. model this process as a Markov chain,
-demonstrating that assigning energy inversely proportional to path frequency improves efficiency by gravitating toward low-frequency paths. Their approach found numerous bugs in widely-tested systems,
-showing that random mutation with coverage feedback can effectively explore complex program behaviors. However, for programs with highly structured inputs—such as programming languages—purely random
-mutation often generates syntactically invalid inputs that are rejected before reaching interesting code paths.
+demonstrating that assigning energy inversely proportional to path frequency improves efficiency by gravitating toward low-frequency paths. Their approach found numerous bugs in widely-tested
+systems,showing that random mutation with coverage feedback can effectively explore complex program behaviors. However, for programs with highly structured inputs—such as programming languages
+purely random mutation often generates syntactically invalid inputs that are rejected before reaching interesting code paths.
 
 Grammar-based fuzzing addresses this limitation by leveraging language grammars to generate syntactically valid inputs. Holler et al. introduced LangFuzz, which parses code fragments from existing
 test suites and mutates them according to language grammar rules [@holler2012fuzzing]. Applied to JavaScript engines, LangFuzz discovered 105 severe vulnerabilities in Mozilla's interpreter within
-three months, demonstrating that grammar-aware generation can efficiently target language processors. Similarly, Yang et al. developed Csmith, a random C program generator that found over 325 bugs in
-mature compilers including GCC and LLVM [@yang2011finding]. These successes highlight a key insight: domain-specific knowledge about input structure dramatically improves fuzzing effectiveness for
-language processors.
+three months, demonstrating that grammar-aware generation can efficiently target language processors. This success highlight a key insight: domain-specific knowledge about input structure
+dramatically improves fuzzing effectiveness for language processors.
 
 Constraint-based approaches, particularly symbolic execution, offer an alternative by systematically exploring program paths through constraint solving. Cadar et al. developed KLEE, a symbolic
 execution engine that achieved over 90% line coverage on GNU COREUTILS utilities and discovered bugs that had persisted for over 15 years [@cadar2008klee]. KLEE symbolically executes programs,
-maintaining path constraints for each execution path and using constraint solvers to generate inputs that reach specific program locations. While powerful for achieving high coverage in systems code,
-symbolic execution faces scalability challenges: path explosion limits analysis to relatively small programs or short execution depths, and constraint solving becomes prohibitively expensive for
-complex path conditions.
+maintaining path constraints for each execution path and using constraint solvers to generate inputs that reach specific program locations. While powerful for achieving high coverage in systems 
+code, symbolic execution faces scalability challenges: path explosion limits analysis to relatively small programs or short execution depths, and constraint solving becomes prohibitively expensive
+for complex path conditions.
+
+Recent work has explored large language models for test generation. Unlike grammar-based approaches that capture only syntactic structure, LLMs can learn semantic patterns from training corpora,
+potentially generating more meaningful test cases. Chen et al. demonstrated that LLMs generate functionally correct code from natural language specifications [@chen2021codex]. Deng et al. combined
+LLM generation with coverage-guided fuzzing in TitanFuzz, using the model to produce API call sequences that discovered bugs in deep learning libraries [@deng2023titanfuzz]. However, these
+approaches target general code generation or library APIs—not the specific challenge of exercising type system edge cases. Moreover, they generate inputs without domain-specific guidance about
+which language features are most likely to expose bugs.
 
 For type checker testing, existing automated test generation techniques face specific challenges. Random fuzzing, which generates inputs through random mutations, struggles with dynamic
-languages—Lukasczyk et al. found that lack of type information and Python's dynamic nature pose fundamental obstacles for automated test generation [@lukasczyk2020automated]. Grammar-based approaches
-can generate syntactically valid code but struggle to produce semantically meaningful programs. Padhye et al. note that while syntax generators can produce structurally valid inputs, ensuring semantic
-validity—inputs that satisfy domain-specific constraints—remains difficult [@padhye2019semantic]. For type checkers, this manifests as code that parses correctly but fails to exercise complex type
-system features like generic constraints, protocol inheritance, or type narrowing. Symbolic execution is poorly suited to type checkers, which perform static analysis rather than concrete execution,
-making symbolic execution's path-based reasoning less applicable. Moreover, none of these approaches leverage the rich signal available in existing bug reports—a source of information about precisely
-which language features and type constructs tend to trigger checker errors. This gap motivates our bug-seeded mutation approach, which combines domain knowledge from real bugs with LLM-based code
-generation to produce test cases that are both syntactically valid and semantically targeted at problematic type checker behaviors.
+languages—Lukasczyk et al. found that lack of type information and Python's dynamic nature pose fundamental obstacles for automated test generation [@lukasczyk2020automated]. Grammar-based
+approaches can generate syntactically valid code but struggle to produce semantically meaningful programs. Padhye et al. note that while syntax generators can produce structurally valid inputs,
+ensuring semantic validity—inputs that satisfy domain-specific constraints—remains difficult [@padhye2019semantic]. For type checkers, this manifests as code that parses correctly but fails to
+exercise complex type system features like generic constraints, protocol inheritance, or type narrowing. Symbolic execution is poorly suited to type checkers, which perform static analysis rather
+than concrete execution, making symbolic execution's path-based reasoning less applicable. Moreover, none of these approaches leverage the rich signal available in existing bug reports—a source of
+information about precisely which language features and type constructs tend to trigger checker errors. This gap motivates our bug-seeded mutation approach, which combines domain knowledge from
+real bugs with LLM-based code generation to produce test cases that are both syntactically valid and semantically targeted at problematic type checker behaviors.
 
 ## Bug-Seeded Mutation and MSR
 
@@ -103,11 +109,11 @@ Mining software repositories (MSR) extracts insights from development artifacts 
 patterns. Hassan and Xie survey the field, identifying how MSR techniques enable researchers to discover bug patterns, predict defects, and understand developer behavior from historical data
 [@hassan2008mining]. For testing tools, MSR provides a crucial signal: real-world bugs reveal which language features, API combinations, and edge cases consistently challenge implementations.
 
-Bug-seeded mutation leverages this insight by using known bugs as templates for generating new test cases. Patra and Pradel introduced SemSeed, which mines bug-fixing commits from open-source projects,
-extracts semantic bug patterns (e.g., incorrect API usage, missing null checks), and uses these patterns to seed mutations in new code [@patra2021semseed]. Their approach achieved a 53% success rate
-in generating valid bugs, compared to just 7% for random fuzzing, demonstrating that real bug patterns provide strong priors for test generation. SemSeed's effectiveness stems from a key observation:
-bugs cluster around specific program constructs and API misuses, making historical bugs predictive of future failures. However, SemSeed operates at the level of runtime bugs (null pointer exceptions,
-API misuse) rather than type system bugs, and relies on pattern matching rather than semantic understanding of bug characteristics.
+Bug-seeded mutation leverages this insight by using known bugs as templates for generating new test cases. Patra and Pradel introduced SemSeed, which mines bug-fixing commits from open-source
+projects, extracts semantic bug patterns (e.g., incorrect API usage, missing null checks), and uses these patterns to seed mutations in new code [@patra2021semseed]. Their approach achieved a 53%
+success rate in generating valid bugs, compared to just 7% for random fuzzing, demonstrating that real bug patterns provide strong priors for test generation. SemSeed's effectiveness stems from a
+key observation: bugs cluster around specific program constructs and API misuses, making historical bugs predictive of future failures. However, SemSeed operates at the level of runtime bugs (null
+pointer exceptions, API misuse) rather than type system bugs, and relies on pattern matching rather than semantic understanding of bug characteristics.
 
 Several empirical studies demonstrate the value of mining type-related bugs specifically. Oh and Oh analyzed 300 Python type-related bugs from GitHub, finding that type errors persist for an average
 of 82 days with 30% remaining unfixed for over a month [@oh2022pyter]. They identify common error patterns including incorrect type annotations, mismatched function signatures, and improper use of
@@ -115,12 +121,12 @@ generic types. Chow et al. examined 2,766 type error fixes from open-source proj
 generic type parameters—account for disproportionate shares of bugs [@chow2024pyty]. These studies reveal that type errors follow identifiable patterns, but neither work uses these patterns for
 automated test generation.
 
-Pytifex builds on these foundations by combining MSR with modern language models. Rather than extracting syntactic patterns from bug-fixing commits, we mine closed issues from type checker repositories
-(mypy, pyrefly, zuban, ty), extract minimal failing examples, and feed them to an LLM (Gemini) with instructions to generate semantically similar but distinct variations. This approach addresses
-limitations in prior work: unlike SemSeed's pattern matching, LLM-based mutation can generalize bug characteristics to new contexts while maintaining semantic validity. Unlike purely empirical studies,
-we use bug insights for proactive test generation rather than retrospective analysis. Recent work demonstrates the promise of this combination: Yang et al. developed WhiteFox, an LLM-guided compiler
-fuzzing approach that outperforms template-based fuzzers by up to 8.2x in triggering optimizations, suggesting that LLM semantic understanding can exceed the effectiveness of pattern-based approaches
-[@yang2024whitefox].
+Pytifex builds on these foundations by combining MSR with modern language models. Rather than extracting syntactic patterns from bug-fixing commits, we mine closed issues from type checker
+repositories (mypy, pyrefly, zuban, ty), extract minimal failing examples, and feed them to an LLM (Gemini) with instructions to generate semantically similar but distinct variations. This approach
+addresses limitations in prior work: unlike SemSeed's pattern matching, LLM-based mutation can generalize bug characteristics to new contexts while maintaining semantic validity. Unlike purely
+empirical studies, we use bug insights for proactive test generation rather than retrospective analysis. Recent work demonstrates the promise of this combination: Yang et al. developed WhiteFox, an
+LLM-guided compiler fuzzing approach that outperforms template-based fuzzers by up to 8.2x in triggering optimizations, suggesting that LLM semantic understanding can exceed the effectiveness of
+pattern-based approaches [@yang2024whitefox].
 
 ## LLM-Based Code Generation
 
