@@ -115,18 +115,17 @@ success rate in generating valid bugs, compared to just 7% for random fuzzing, d
 key observation: bugs cluster around specific program constructs and API misuses, making historical bugs predictive of future failures. However, SemSeed operates at the level of runtime bugs (null
 pointer exceptions, API misuse) rather than type system bugs, and relies on pattern matching rather than semantic understanding of bug characteristics.
 
-Several empirical studies demonstrate the value of mining type-related bugs specifically. Oh and Oh analyzed 300 Python type-related bugs from GitHub, finding that type errors persist for an average
-of 82 days with 30% remaining unfixed for over a month [@oh2022pyter]. They identify common error patterns including incorrect type annotations, mismatched function signatures, and improper use of
-generic types. Chow et al. examined 2,766 type error fixes from open-source projects, categorizing errors by root cause and finding that certain constructs—particularly gradual typing boundaries and
-generic type parameters—account for disproportionate shares of bugs [@chow2024pyty]. These studies reveal that type errors follow identifiable patterns, but neither work uses these patterns for
-automated test generation.
+Several empirical studies demonstrate the value of mining type-related bugs specifically. Oh and Oh analyzed 300 Python type-related bugs from GitHub, characterizing bug persistence and fix
+patterns in Python type checking [@oh2022pyter]. They identify common error patterns including incorrect type annotations, mismatched function signatures, and improper use of generic types. Chow et
+al. examined 2,766 type error fixes from open-source projects, categorizing errors by root cause and finding that certain constructs—particularly gradual typing boundaries and generic type
+parameters—account for disproportionate shares of bugs [@chow2024pyty]. These studies reveal that type errors follow identifiable patterns, but neither work uses these patterns for automated test
+generation.
 
-Pytifex builds on these foundations by combining MSR with modern language models. Rather than extracting syntactic patterns from bug-fixing commits, we mine closed issues from type checker
-repositories (mypy, pyrefly, zuban, ty), extract minimal failing examples, and feed them to an LLM (Gemini) with instructions to generate semantically similar but distinct variations. This approach
-addresses limitations in prior work: unlike SemSeed's pattern matching, LLM-based mutation can generalize bug characteristics to new contexts while maintaining semantic validity. Unlike purely
-empirical studies, we use bug insights for proactive test generation rather than retrospective analysis. Recent work demonstrates the promise of this combination: Yang et al. developed WhiteFox, an
-LLM-guided compiler fuzzing approach that outperforms template-based fuzzers by up to 8.2x in triggering optimizations, suggesting that LLM semantic understanding can exceed the effectiveness of
-pattern-based approaches [@yang2024whitefox].
+Our approach combines MSR with LLM-based mutation, mining closed issues from type checker repositories and using LLMs to generate semantically similar variations—addressing the gap between pattern
+based mutation and the semantic understanding needed for type system edge cases. Unlike SemSeed's syntactic pattern matching, LLM-based mutation can generalize bug characteristics to new contexts
+while maintaining semantic validity. Recent work demonstrates the promise of this combination: Yang et al. developed WhiteFox, an LLM-guided compiler fuzzing approach that outperforms template
+based fuzzers by up to 8.2x in triggering optimizations [@yang2024whitefox]. While WhiteFox targets compiler optimizations rather than type checking, it demonstrates that LLM-guided mutation can
+exceed the effectiveness of pattern-based approaches—a principle we apply to the type checker domain.
 
 ## LLM-Based Code Generation
 
@@ -137,12 +136,10 @@ demonstrating that LLMs can effectively redirect search toward productive areas 
 
 Schäfer et al. conducted a large-scale empirical evaluation of LLMs for unit test generation across 1,684 API functions in JavaScript packages [@schafer2024empirical]. Their TestPilot tool achieved
 median statement coverage of 70.2% and branch coverage of 52.8%, substantially outperforming the feedback-directed test generation technique Nessie (51.3% statement coverage, 25.6% branch coverage).
-Critically, 92.8% of generated tests showed less than 50% similarity with existing tests, indicating that LLMs produce novel test cases rather than memorizing training data. However, their evaluation
-also revealed challenges: generated tests sometimes fail to compile, require iterative repair through re-prompting, and struggle with complex API interactions requiring deep understanding of program
-semantics.
+Critically, 92.8% of generated tests showed less than 50% similarity with existing tests, indicating that LLMs produce novel test cases rather than memorizing training data. However, their
+evaluation also revealed challenges: generated tests sometimes fail to compile, require iterative repair through re-prompting, and struggle with complex API interactions requiring deep
+understanding of program semantics.
 
-For type checker testing specifically, Deng et al. applied LLMs to fuzzing deep learning libraries, demonstrating that historical bug-triggering code can guide LLM generation toward edge cases
-[@deng2024edge]. Their FuzzGPT approach found 76 bugs including 11 high-priority issues, suggesting that LLM semantic understanding combined with bug patterns can exceed template-based approaches.
-This finding motivates our approach of seeding LLM generation with real type checker bugs rather than relying on zero-shot prompting. By grounding generation in concrete, validated failure patterns
-from GitHub repositories, we aim to leverage LLMs' generative capabilities while reducing hallucinations and ensuring generated code exercises problematic type system features.
-
+Beyond general test generation, Deng et al. demonstrated that historical bug-triggering code can guide LLM generation toward edge cases [@deng2024fuzzgpt]. Their FuzzGPT approach found 76 bugs
+including 11 high-priority issues in deep learning libraries, suggesting that LLM semantic understanding combined with bug patterns can exceed template-based approaches. This finding motivates
+seeding LLM generation with real type checker bugs rather than relying on zero-shot prompting.
