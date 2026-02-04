@@ -138,7 +138,7 @@ Schäfer et al. conducted a large-scale empirical evaluation of LLMs for unit te
 median statement coverage of 70.2% and branch coverage of 52.8%, substantially outperforming the feedback-directed test generation technique Nessie (51.3% statement coverage, 25.6% branch coverage).
 Critically, 92.8% of generated tests showed less than 50% similarity with existing tests, indicating that LLMs produce novel test cases rather than memorizing training data. However, their
 evaluation also revealed challenges: generated tests sometimes fail to compile, require iterative repair through re-prompting, and struggle with complex API interactions requiring deep
-understanding of program semantics.
+understanding of program semantics. While these results demonstrate LLM effectiveness for runtime test generation, their application to static type checker testing remains unexplored.
 
 Beyond general test generation, Deng et al. demonstrated that historical bug-triggering code can guide LLM generation toward edge cases [@deng2024fuzzgpt]. Their FuzzGPT approach found 76 bugs
 including 11 high-priority issues in deep learning libraries, suggesting that LLM semantic understanding combined with bug patterns can exceed template-based approaches. This finding motivates
