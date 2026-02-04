@@ -13,13 +13,18 @@ measure adherence to specification, not robustness against real-world edge cases
 
 **Manual Test Suites**. Type checker projects maintain their own test suites, typically comprising thousands of hand-written examples. Mypy's test suite contains over 10,000
 cases spanning a decade of development [@mypy_tests]. While these suites provide high-quality coverage of known patterns, they suffer from inherent scalability limitations.
-As Xu et al. observe, manual test suites "can hardly keep up with rapid increase in size and complexity" of modern type systems [@xu2019hydra]. Each new PEP introduces
-features that require new test cases, and the combinatorial explosion of interactions between features makes exhaustive manual coverage infeasible.
+As Xu et al. observe in their study of Java type systems, manual test suites "can hardly keep up with rapid increase in size and complexity" of modern type systems [@xu2019hydra].
+Each new PEP introduces features that require new test cases, and the combinatorial explosion of interactions between features makes exhaustive manual coverage infeasible. Moreover,
+these suites tend to focus on canonical usage patterns rather than adversarial edge cases—the unusual combinations most likely to expose bugs.
 
 **Reactive Bug Detection**. In practice, many type checker bugs are discovered through user reports. Developers encounter edge cases during development, file GitHub issues,
 and maintainers patch the bugs. This reactive approach creates substantial time lag between bug introduction and detection. Oh and Oh found that type checker bugs persist
 for an average of 82 days, with 30% requiring over a month to fix [@oh2022pyter]. This delay is particularly problematic given Python's rapid evolution—Python 3.12 and 3.13
 introduced major typing features (PEP 695, PEP 742) that created new opportunities for bugs before existing tools were fully validated.
+
+**Proactive Testing Techniques**. Automated approaches like fuzzing and property-based testing have proven effective for compiler validation, but have seen limited application
+to Python type checkers. Tools like CSmith for C compilers and TypeFuzz for TypeScript demonstrate the potential of generative testing, yet Python's dynamic semantics and 
+rapidly evolving type system present unique challenges that existing tools do not address.
 
 **The Validation Gap**. Current approaches share a fundamental limitation: they are reactive rather than proactive. Conformance tests validate known specification
 requirements; manual suites encode previously discovered patterns; user reports identify bugs only after developers encounter them. There is no systematic approach to
@@ -35,18 +40,30 @@ output for arbitrary inputs is difficult and constructing test oracles is expens
 manual verification.
 
 Yang et al. demonstrated the effectiveness of differential testing for compiler validation with Csmith, a random C program generator that found over 325 previously unknown bugs in mature compilers
-including GCC and LLVM [@yang2011finding]. Their approach generated syntactically valid C programs, compiled them with multiple compilers, and compared outputs. Disagreements indicated compiler bugs,
-which were confirmed by examining the generated assembly or consulting language specifications. Critically, Yang et al. found that differential testing revealed bugs missed by extensive manual test
-suites, suggesting that consensus-based testing exposes edge cases that structured testing overlooks.
+including GCC and LLVM [@yang2011finding]. Their approach generated syntactically valid C programs, compiled them with multiple compilers, and compared outputs. Disagreements indicated compiler
+bugs, which were confirmed by examining the generated assembly or consulting language specifications. Critically, Yang et al. found that differential testing revealed bugs missed by extensive
+manual test suites, suggesting that consensus-based testing exposes edge cases that structured testing overlooks.
 
-The technique has proven effective beyond compilers. Rigger and Su applied differential testing to database management systems, finding bugs in SQLite, MySQL, and PostgreSQL by generating semantically
-equivalent SQL queries and comparing results [@rigger2020finding]. Kapus and Cadar used differential testing to validate symbolic execution engines, identifying disagreements between KLEE, S2E, and
-other tools [@kapus2019differential]. These successes demonstrate that differential testing generalizes to any domain with multiple independent implementations of a common specification.
+Le et al. extended differential testing with Equivalence Modulo Inputs (EMI), which generates program variants that preserve semantics under specific inputs [@le2014compiler]. By systematically 
+deleting or modifying dead code, EMI creates programs that should produce identical results, exposing compiler bugs when outputs differ. While highly effective for compilers, EMI assumes executable
+semantics that can be compared at runtime—a property that type checker outputs lack.
 
-Python type checkers present an ideal target for differential testing. Multiple implementations (mypy, pyrefly, zuban, ty) claim to implement the same typing specification, yet they differ in maturity,
-implementation language, and optimization strategies. When these tools disagree on whether code is type-correct, the disagreement signals either a specification ambiguity or an implementation bug.
-However, a critical limitation emerges: unlike compilers where runtime execution provides ground truth, type checker disagreements alone cannot determine which tool is correct. This motivates the need
-for an independent oracle—a challenge we address through runtime testing.
+Beyond compiler validation, differential testing has proven effective across diverse domains. Rigger and Su applied differential testing to database management systems, finding bugs in SQLite,
+MySQL, and PostgreSQL by generating semantically equivalent SQL queries and comparing results [@rigger2020finding]. Kapus and Cadar used differential testing to validate symbolic execution engines,
+identifying disagreements between KLEE, S2E, and other tools [@kapus2019differential]. These successes demonstrate that differential testing generalizes to any domain with multiple independent
+implementations of a common specification.
+
+For type systems specifically, differential testing has seen limited but promising application. Work on TypeScript type checkers has compared implementations to find inference bugs, though 
+TypeScript's structural typing and JavaScript runtime semantics differ substantially from Python's gradual typing model. PyTER [@oh2022pyter] studied Python type checker bugs through issue mining
+rather than differential testing, finding that bugs persist for an average of 82 days—motivating the need for proactive detection techniques.
+
+Python type checkers present an ideal target for differential testing. Multiple implementations (mypy, pyrefly, zuban, ty) claim to implement the same typing specification, yet they differ in
+maturity,implementation language, and optimization strategies. When these tools disagree on whether code is type-correct, the disagreement signals either a specification ambiguity or an
+implementation bug. However, a critical limitation emerges: unlike compilers where runtime execution provides ground truth, type checker disagreements alone cannot determine which tool is correct.
+
+This motivates the need for an independent oracle. Unlike compiler testing where execution provides ground truth, type checker disagreements require external validation. We address this challenge
+by combining differential testing with runtime execution: when type checkers disagree about whether code is correct, we execute the code to determine if runtime errors occur, providing an objective
+arbiter that neither manual analysis nor specification consultation requires.
 
 ## Automated Test Generation
 
