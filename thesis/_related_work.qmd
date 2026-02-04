@@ -48,3 +48,35 @@ implementation language, and optimization strategies. When these tools disagree 
 However, a critical limitation emerges: unlike compilers where runtime execution provides ground truth, type checker disagreements alone cannot determine which tool is correct. This motivates the need
 for an independent oracle—a challenge we address through runtime testing.
 
+## Automated Test Generation
+
+Automated test generation techniques have proven effective at discovering bugs in software systems, offering an alternative to manual test construction that can explore program behaviors
+systematically. These techniques broadly fall into three categories: mutation-based fuzzing, grammar-based fuzzing, and constraint-based approaches.
+
+Mutation-based fuzzing generates test inputs by randomly modifying seed inputs, observing program behavior on the mutated inputs. Coverage-guided greybox fuzzing, exemplified by tools like American
+Fuzzy Lop (AFL), enhances this approach by using code coverage feedback to guide mutation toward unexplored program paths [@bohme2016coverage]. Böhme et al. model this process as a Markov chain,
+demonstrating that assigning energy inversely proportional to path frequency improves efficiency by gravitating toward low-frequency paths. Their approach found numerous bugs in widely-tested systems,
+showing that random mutation with coverage feedback can effectively explore complex program behaviors. However, for programs with highly structured inputs—such as programming languages—purely random
+mutation often generates syntactically invalid inputs that are rejected before reaching interesting code paths.
+
+Grammar-based fuzzing addresses this limitation by leveraging language grammars to generate syntactically valid inputs. Holler et al. introduced LangFuzz, which parses code fragments from existing
+test suites and mutates them according to language grammar rules [@holler2012fuzzing]. Applied to JavaScript engines, LangFuzz discovered 105 severe vulnerabilities in Mozilla's interpreter within
+three months, demonstrating that grammar-aware generation can efficiently target language processors. Similarly, Yang et al. developed Csmith, a random C program generator that found over 325 bugs in
+mature compilers including GCC and LLVM [@yang2011finding]. These successes highlight a key insight: domain-specific knowledge about input structure dramatically improves fuzzing effectiveness for
+language processors.
+
+Constraint-based approaches, particularly symbolic execution, offer an alternative by systematically exploring program paths through constraint solving. Cadar et al. developed KLEE, a symbolic
+execution engine that achieved over 90% line coverage on GNU COREUTILS utilities and discovered bugs that had persisted for over 15 years [@cadar2008klee]. KLEE symbolically executes programs,
+maintaining path constraints for each execution path and using constraint solvers to generate inputs that reach specific program locations. While powerful for achieving high coverage in systems code,
+symbolic execution faces scalability challenges: path explosion limits analysis to relatively small programs or short execution depths, and constraint solving becomes prohibitively expensive for
+complex path conditions.
+
+For type checker testing, existing automated test generation techniques face specific challenges. Random fuzzing, which generates inputs through random mutations, struggles with dynamic
+languages—Lukasczyk et al. found that lack of type information and Python's dynamic nature pose fundamental obstacles for automated test generation [@lukasczyk2020automated]. Grammar-based approaches
+can generate syntactically valid code but struggle to produce semantically meaningful programs. Padhye et al. note that while syntax generators can produce structurally valid inputs, ensuring semantic
+validity—inputs that satisfy domain-specific constraints—remains difficult [@padhye2019semantic]. For type checkers, this manifests as code that parses correctly but fails to exercise complex type
+system features like generic constraints, protocol inheritance, or type narrowing. Symbolic execution is poorly suited to type checkers, which perform static analysis rather than concrete execution,
+making symbolic execution's path-based reasoning less applicable. Moreover, none of these approaches leverage the rich signal available in existing bug reports—a source of information about precisely
+which language features and type constructs tend to trigger checker errors. This gap motivates our bug-seeded mutation approach, which combines domain knowledge from real bugs with LLM-based code
+generation to produce test cases that are both syntactically valid and semantically targeted at problematic type checker behaviors.
+
