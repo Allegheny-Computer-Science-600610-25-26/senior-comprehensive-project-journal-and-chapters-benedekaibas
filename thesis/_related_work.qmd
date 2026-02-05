@@ -23,8 +23,8 @@ for an average of 82 days, with 30% requiring over a month to fix [@oh2022pyter]
 introduced major typing features (PEP 695, PEP 742) that created new opportunities for bugs before existing tools were fully validated.
 
 **Proactive Testing Techniques**. Automated approaches like fuzzing and property-based testing have proven effective for compiler validation, but have seen limited application
-to Python type checkers. Tools like CSmith for C compilers and TypeFuzz for TypeScript demonstrate the potential of generative testing, yet Python's dynamic semantics and 
-rapidly evolving type system present unique challenges that existing tools do not address.
+to Python type checkers. Tools like CSmith for C compilers demonstrate the potential of generative testing, yet Python's dynamic semantics and rapidly evolving type system present unique challenges
+that existing tools do not address.
 
 **The Validation Gap**. Current approaches share a fundamental limitation: they are reactive rather than proactive. Conformance tests validate known specification
 requirements; manual suites encode previously discovered patterns; user reports identify bugs only after developers encounter them. There is no systematic approach to
