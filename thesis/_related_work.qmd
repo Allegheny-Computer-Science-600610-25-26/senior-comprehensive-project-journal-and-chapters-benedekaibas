@@ -88,11 +88,11 @@ maintaining path constraints for each execution path and using constraint solver
 code, symbolic execution faces scalability challenges: path explosion limits analysis to relatively small programs or short execution depths, and constraint solving becomes prohibitively expensive
 for complex path conditions.
 
-Recent work has explored large language models for test generation. Unlike grammar-based approaches that capture only syntactic structure, LLMs can learn semantic patterns from training corpora,
-potentially generating more meaningful test cases. Chen et al. demonstrated that LLMs generate functionally correct code from natural language specifications [@chen2021codex]. Deng et al. combined
-LLM generation with coverage-guided fuzzing in TitanFuzz, using the model to produce API call sequences that discovered bugs in deep learning libraries [@deng2023titanfuzz]. However, these
-approaches target general code generation or library APIs—not the specific challenge of exercising type system edge cases. Moreover, they generate inputs without domain-specific guidance about
-which language features are most likely to expose bugs.
+Recent work has explored large language models for test generation. Unlike grammar-based approaches that capture only syntactic structure, LLMs can learn semantic patterns
+from training corpora, potentially generating more meaningful test cases. Deng et al. combined LLM generation with coverage-guided fuzzing in TitanFuzz, using the model to
+produce API call sequences that discovered bugs in deep learning libraries [@deng2023titanfuzz]. However, these approaches target general code generation or library APIs—not
+the specific challenge of exercising type system edge cases. Moreover, they generate inputs without domain-specific guidance about which language features are most likely to
+expose bugs.
 
 For type checker testing, existing automated test generation techniques face specific challenges. Random fuzzing, which generates inputs through random mutations, struggles with dynamic
 languages—Lukasczyk et al. found that lack of type information and Python's dynamic nature pose fundamental obstacles for automated test generation [@lukasczyk2020automated]. Grammar-based
