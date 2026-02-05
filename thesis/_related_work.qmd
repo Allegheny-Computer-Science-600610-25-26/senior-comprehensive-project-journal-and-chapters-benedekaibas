@@ -53,9 +53,9 @@ MySQL, and PostgreSQL by generating semantically equivalent SQL queries and comp
 identifying disagreements between symbolic execution engines including KLEE and S2E [@kapus2019differential]. These successes demonstrate that differential testing generalizes to any domain with
 multiple independent implementations of a common specification.
 
-For type systems specifically, differential testing has seen limited but promising application. Work on TypeScript type checkers has compared implementations to find inference bugs, though 
-TypeScript's structural typing and JavaScript runtime semantics differ substantially from Python's gradual typing model. PyTER [@oh2022pyter] studied Python type checker bugs through issue mining
-rather than differential testing, finding that bugs persist for an average of 82 days—motivating the need for proactive detection techniques.
+For type systems specifically, differential testing has seen limited but promising application. While the technique has been explored for other type systems, Python's gradual typing model and
+dynamic semantics present unique challenges that existing approaches do not address. PyTER [@oh2022pyter] studied Python type checker bugs through issue mining rather than differential testing,
+finding that bugs persist for an average of 82 days—motivating the need for proactive detection techniques.
 
 Python type checkers present an ideal target for differential testing. Multiple implementations (mypy, pyrefly, zuban, ty) claim to implement the same typing specification, yet they differ in
 maturity,implementation language, and optimization strategies. When these tools disagree on whether code is type-correct, the disagreement signals either a specification ambiguity or an
