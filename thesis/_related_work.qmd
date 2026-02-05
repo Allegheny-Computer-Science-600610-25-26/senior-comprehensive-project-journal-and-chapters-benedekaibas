@@ -143,3 +143,8 @@ understanding of program semantics. While these results demonstrate LLM effectiv
 Beyond general test generation, Deng et al. demonstrated that historical bug-triggering code can guide LLM generation toward edge cases [@deng2024fuzzgpt]. Their FuzzGPT approach found 76 bugs
 including 11 high-priority issues in deep learning libraries, suggesting that LLM semantic understanding combined with bug patterns can exceed template-based approaches. This finding motivates
 seeding LLM generation with real type checker bugs rather than relying on zero-shot prompting.
+
+Existing approaches to type checker validation rely on conformance suites with incomplete coverage, manual test suites that cannot scale, or reactive bug reports that lag behind feature
+development. Automated techniques—fuzzing, symbolic execution, and LLM-based generation—have proven effective in adjacent domains but have not been combined for type checker testing. Pytifex
+addresses this gap by integrating differential testing across multiple type checkers, bug-seeded mutation from mined GitHub issues, LLM-based code generation, and runtime execution as an
+independent oracle.
