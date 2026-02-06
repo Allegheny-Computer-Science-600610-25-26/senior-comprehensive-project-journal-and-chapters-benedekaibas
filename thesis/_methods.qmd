@@ -1,18 +1,18 @@
-# Method of approach
+# Methods
 
-This chapter answers the "how" question - how did you complete your project,
-including the overall design of your study, details of the algorithms and tools you
-have used, etc.  Use technical diagrams, equations, algorithms, and paragraphs of text
-to describe the research that you have completed. Be sure to number all figures and
-tables and to explicitly refer to them in your text.
+## Overview and System Architecture
 
-This should contain:
+Pytifex employs a four-stage pipeline to systematically generate test cases that expose type checker bugs: (1) mining bug reports from type checker repositories, (2)
+LLM-based mutation to generate semantically similar variations, (3) differential testing across multiple type checkers to identify disagreements, and (4) runtime validation
+to establish ground truth. Figure 3.1 illustrates this architecture.
 
-* lists
-* with points
-* and more points
-  * possibly subpoints
+The pipeline's design reflects two key insights from our analysis of related work. First, differential testing alone cannot determine which type checker is correct when
+disagreements occur—it only signals that at least one implementation is wrong. Second, historical bug reports encode precisely which language features and type constructs
+tend to trigger checker failures, making them valuable seeds for generating new test cases.
 
-For those projects whose implications address social or moral issues (i.e. ethical
-standards, causes, effects), you will want to use this section to describe how you
-actively mitigated or considered these issues.
+To address the first limitation, we introduce a runtime oracle: when type checkers disagree about whether code is type-safe, we execute the code and observe whether runtime
+errors occur. A TypeError or AttributeError provides definitive evidence of a false negative—the checker that accepted the code was wrong. This oracle is asymmetric: we can
+prove false negatives but not false positives, since code may execute successfully without exercising all potential error paths.
+
+To exploit the second insight, we mine closed issues from type checker repositories (mypy, pyrefly, ty, zuban, pyright) and extract minimal reproducible examples. These seed
+bugs are fed to a large language model with instructions to generate semantically similar variations that may trigger related failures in other checkers.

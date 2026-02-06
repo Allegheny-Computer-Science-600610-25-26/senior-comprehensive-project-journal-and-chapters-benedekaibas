@@ -1,15 +1,1 @@
-# Conclusion
 
-Traditionally, this chapter addresses the areas proposed below as sections, although
-not necessarily in this order or organized as offered. However, the last section --
-"Ethical Implcations" is required for this chapter. See the heading below for more
-details.
-
-## Summary of Results
-
-## Future Work
-
-## Future Ethical Implications and Recommendations
-
-Especially as pertains to the public release or use of your software or methods, what
-unresolved or special issues remain? What recommendations might you make?
