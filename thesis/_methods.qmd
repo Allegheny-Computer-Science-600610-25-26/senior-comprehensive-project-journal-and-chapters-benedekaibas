@@ -15,5 +15,5 @@ errors occur. A TypeError or AttributeError provides definitive evidence of a fa
 prove false negatives but not false positives, since code may execute successfully without exercising all potential error paths.
 
 To exploit the second insight, we mine closed issues from type checker repositories (mypy, pyright, pyrefly, ty) and extract minimal reproducible examples. These seed bugs
-are fed to a large language model (Gemini) with instructions to generate semantically similar variations that may trigger related failures in other checkers.
+are fed to a large language model with instructions to generate semantically similar variations that may trigger related failures in other checkers.
 
