@@ -16,4 +16,3 @@ prove false negatives but not false positives, since code may execute successful
 
 To exploit the second insight, we mine closed issues from type checker repositories (mypy, pyrefly, ty, zuban, pyright) and extract minimal reproducible examples. These seed
 bugs are fed to a large language model with instructions to generate semantically similar variations that may trigger related failures in other checkers.
-
