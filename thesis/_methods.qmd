@@ -14,6 +14,6 @@ To address the first limitation, we introduce a runtime oracle: when type checke
 errors occur. A TypeError or AttributeError provides definitive evidence of a false negative—the checker that accepted the code was wrong. This oracle is asymmetric: we can
 prove false negatives but not false positives, since code may execute successfully without exercising all potential error paths.
 
-To exploit the second insight, we mine closed issues from type checker repositories (mypy, pyrefly, ty, and zuban) and extract minimal reproducible examples. These seed bugs
-are fed to a large language model with instructions to generate semantically similar variations that may trigger related failures in other checkers.
+To exploit the second insight, we mine closed issues from type checker repositories (mypy, pyrefly, ty, zuban, pyright) and extract minimal reproducible examples. These seed
+bugs are fed to a large language model with instructions to generate semantically similar variations that may trigger related failures in other checkers.
 
