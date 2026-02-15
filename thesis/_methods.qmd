@@ -4,15 +4,15 @@
 
 Pytifex employs a four-stage pipeline to systematically generate test cases that expose type checker bugs: (1) mining bug reports from type checker repositories, (2)
 LLM-based mutation to generate semantically similar variations, (3) differential testing across multiple type checkers to identify disagreements, and (4) runtime validation
-to establish ground truth. Figure 3.1 illustrates this architecture.
+to establish ground truth.
+Figure 3.1 illustrates this architecture.
+
+![Figure 3.1](images/pytifex_pipeline.png)
+**Figure 3.1:** Pytifex system architecture. Seed bugs mined from closed GitHub issues are mutated by Gemini to produce semantically similar variants that may trigger related
+failures across different type checkers. Valid variants are tested across four type checkers to identify disagreements. Disagreement-triggering programs are executed at
+runtime; `TypeError`, `KeyError`, or `AttributeError` constitutes definitive evidence of a false negative. The pipeline guarantees that 100% of final outputs are confirmed
+false negatives.
 
 The pipeline's design reflects two key insights from our analysis of related work. First, differential testing alone cannot determine which type checker is correct when
 disagreements occur—it only signals that at least one implementation is wrong. Second, historical bug reports encode precisely which language features and type constructs
 tend to trigger checker failures, making them valuable seeds for generating new test cases.
-
-To address the first limitation, we introduce a runtime oracle: when type checkers disagree about whether code is type-safe, we execute the code and observe whether runtime
-errors occur. A TypeError or AttributeError provides definitive evidence of a false negative—the checker that accepted the code was wrong. This oracle is asymmetric: we can
-prove false negatives but not false positives, since code may execute successfully without exercising all potential error paths.
-
-To exploit the second insight, we mine closed issues from type checker repositories (mypy, pyrefly, ty, zuban, pyright) and extract minimal reproducible examples. These seed
-bugs are fed to a large language model with instructions to generate semantically similar variations that may trigger related failures in other checkers.
