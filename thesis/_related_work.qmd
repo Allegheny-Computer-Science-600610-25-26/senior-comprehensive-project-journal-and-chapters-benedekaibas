@@ -1,10 +1,150 @@
-# Related work
+# Related Work
 
-This chapter includes a broad and detailed review of relevant existing work.
-The literature review should provide background and context for the thesis work.
-The subsections may be organized in whatever manner seems best suited to the material--
-chronological, or by topic, or according to some other criteria
-(e.g., primary versus secondary resources).
+## Type Checker Validation Approaches
 
-If ethical issues are central to this work, you should also address historical and
-contemporary issues or efforts made to address them.
+The Python community has developed several approaches to validate type checker correctness, each with distinct strengths and limitations.
+
+**Conformance Testing**. The Python Typing Council maintains an official conformance test suite that validates type checker behavior against PEP specifications
+[@typing_conformance]. This suite tests whether implementations correctly handle prescribed typing features, such as generic types (PEP 484), protocols (PEP 544), and
+TypedDict (PEP 589). However, conformance testing has significant gaps. First, coverage is incomplete—newer type checkers like ty (currently in beta) are not yet officially
+included in the testing framework, though independent evaluation is possible. Second, when type checkers are evaluated against the conformance suite, scores vary
+dramatically: independent testing shows ty achieving 15% conformance, pyrefly 58%, and zuban 69% [@sinon2025conformance]. Third, and most critically, conformance tests
+measure adherence to specification, not robustness against real-world edge cases that fall outside the spec's explicit scope.
+
+**Manual Test Suites**. Type checker projects maintain their own test suites, typically comprising thousands of hand-written examples. Mypy's test suite contains over 10,000
+cases spanning a decade of development [@mypy_tests]. While these suites provide high-quality coverage of known patterns, they suffer from inherent scalability limitations.
+As Xu et al. observe in their study of Java type systems, manual test suites "can hardly keep up with rapid increase in size and complexity" of modern type systems [@xu2019hydra].
+Each new PEP introduces features that require new test cases, and the combinatorial explosion of interactions between features makes exhaustive manual coverage infeasible. Moreover,
+these suites tend to focus on canonical usage patterns rather than adversarial edge cases—the unusual combinations most likely to expose bugs.
+
+**Reactive Bug Detection**. In practice, many type checker bugs are discovered through user reports. Developers encounter edge cases during development, file GitHub issues,
+and maintainers patch the bugs. This reactive approach creates substantial time lag between bug introduction and detection. Oh and Oh found that type checker bugs persist
+for an average of 82 days, with 30% requiring over a month to fix [@oh2022pyter]. This delay is particularly problematic given Python's rapid evolution—Python 3.12 and 3.13
+introduced major typing features (PEP 695, PEP 742) that created new opportunities for bugs before existing tools were fully validated.
+
+**Proactive Testing Techniques**. Automated approaches like fuzzing and property-based testing have proven effective for compiler validation, but have seen limited application
+to Python type checkers. Tools like CSmith for C compilers demonstrate the potential of generative testing, yet Python's dynamic semantics and rapidly evolving type system present unique challenges
+that existing tools do not address.
+
+**The Validation Gap**. Current approaches share a fundamental limitation: they are reactive rather than proactive. Conformance tests validate known specification
+requirements; manual suites encode previously discovered patterns; user reports identify bugs only after developers encounter them. There is no systematic approach to
+generating novel test cases that expose latent bugs before users encounter them in production. This gap motivates the need for automated, adversarial test generation that
+can proactively explore the space of potential type checker disagreements.
+
+## Differential Testing for Static Analyzers
+
+Differential testing, formalized by McKeeman in 1998, is a methodology for detecting bugs by providing identical input to multiple implementations of the same specification and identifying
+discrepancies in their outputs [@mckeeman1998differential]. Unlike traditional testing, which requires an oracle—a known correct answer for each test case—differential testing exploits the principle
+that consensus among independent implementations provides evidence of correctness. This approach is particularly valuable for domains like compilers and type checkers, where determining the correct
+output for arbitrary inputs is difficult and constructing test oracles is expensive [@yang2011finding]. When implementations disagree, at least one must be incorrect, enabling bug detection without
+manual verification.
+
+Yang et al. demonstrated the effectiveness of differential testing for compiler validation with Csmith, a random C program generator that found over 325 previously unknown bugs in mature compilers
+including GCC and LLVM [@yang2011finding]. Their approach generated syntactically valid C programs, compiled them with multiple compilers, and compared outputs. Disagreements indicated compiler
+bugs, which were confirmed by examining the generated assembly or consulting language specifications. Critically, Yang et al. found that differential testing revealed bugs missed by extensive
+manual test suites, suggesting that consensus-based testing exposes edge cases that structured testing overlooks.
+
+Le et al. extended differential testing with Equivalence Modulo Inputs (EMI), which generates program variants that preserve semantics under specific inputs [@le2014compiler]. By systematically 
+deleting or modifying dead code, EMI creates programs that should produce identical results, exposing compiler bugs when outputs differ. While highly effective for compilers, EMI assumes executable
+semantics that can be compared at runtime—a property that type checker outputs lack.
+
+Beyond compiler validation, differential testing has proven effective across diverse domains. Rigger and Su applied differential testing to database management systems, finding bugs in SQLite,
+MySQL, and PostgreSQL by generating semantically equivalent SQL queries and comparing results [@rigger2020finding]. Kapus and Cadar used differential testing to validate symbolic execution engines,
+identifying disagreements between symbolic execution engines including KLEE and S2E [@kapus2019differential]. These successes demonstrate that differential testing generalizes to any domain with
+multiple independent implementations of a common specification.
+
+For type systems specifically, differential testing has seen limited but promising application. While the technique has been explored for other type systems, Python's gradual typing model and
+dynamic semantics present unique challenges that existing approaches do not address. PyTER [@oh2022pyter] studied Python type checker bugs through issue mining rather than differential testing,
+finding that bugs persist for an average of 82 days—motivating the need for proactive detection techniques.
+
+Python type checkers present an ideal target for differential testing. Multiple implementations (mypy, pyrefly, zuban, ty) claim to implement the same typing specification, yet they differ in
+maturity,implementation language, and optimization strategies. When these tools disagree on whether code is type-correct, the disagreement signals either a specification ambiguity or an
+implementation bug. However, a critical limitation emerges: unlike compilers where runtime execution provides ground truth, type checker disagreements alone cannot determine which tool is correct.
+
+This motivates the need for an independent oracle. Unlike compiler testing where execution provides ground truth, type checker disagreements require external validation. We address this challenge
+by combining differential testing with runtime execution: when type checkers disagree about whether code is correct, we execute the code to determine if runtime errors occur, providing an objective
+arbiter that neither manual analysis nor specification consultation requires.
+
+## Automated Test Generation
+
+Automated test generation techniques have proven effective at discovering bugs in software systems, offering an alternative to manual test construction that can explore program behaviors
+systematically. These techniques broadly fall into three categories—mutation-based fuzzing, grammar-based fuzzing, and constraint-based approaches—with recent work exploring large language models
+as a complementary technique.
+
+Mutation-based fuzzing generates test inputs by randomly modifying seed inputs, observing program behavior on the mutated inputs. Coverage-guided greybox fuzzing, exemplified by tools like American
+Fuzzy Lop (AFL), enhances this approach by using code coverage feedback to guide mutation toward unexplored program paths [@bohme2016coverage]. Böhme et al. model this process as a Markov chain,
+demonstrating that assigning energy inversely proportional to path frequency improves efficiency by gravitating toward low-frequency paths. Their approach found numerous bugs in widely-tested
+systems,showing that random mutation with coverage feedback can effectively explore complex program behaviors. However, for programs with highly structured inputs—such as programming languages
+purely random mutation often generates syntactically invalid inputs that are rejected before reaching interesting code paths.
+
+Grammar-based fuzzing addresses this limitation by leveraging language grammars to generate syntactically valid inputs. Holler et al. introduced LangFuzz, which parses code fragments from existing
+test suites and mutates them according to language grammar rules [@holler2012fuzzing]. Applied to JavaScript engines, LangFuzz discovered 105 severe vulnerabilities in Mozilla's interpreter within
+three months, demonstrating that grammar-aware generation can efficiently target language processors. This success highlight a key insight: domain-specific knowledge about input structure
+dramatically improves fuzzing effectiveness for language processors.
+
+Constraint-based approaches, particularly symbolic execution, offer an alternative by systematically exploring program paths through constraint solving. Cadar et al. developed KLEE, a symbolic
+execution engine that achieved over 90% line coverage on GNU COREUTILS utilities and discovered bugs that had persisted for over 15 years [@cadar2008klee]. KLEE symbolically executes programs,
+maintaining path constraints for each execution path and using constraint solvers to generate inputs that reach specific program locations. While powerful for achieving high coverage in systems 
+code, symbolic execution faces scalability challenges: path explosion limits analysis to relatively small programs or short execution depths, and constraint solving becomes prohibitively expensive
+for complex path conditions.
+
+Recent work has explored large language models for test generation. Unlike grammar-based approaches that capture only syntactic structure, LLMs can learn semantic patterns
+from training corpora, potentially generating more meaningful test cases. Deng et al. combined LLM generation with coverage-guided fuzzing in TitanFuzz, using the model to
+produce API call sequences that discovered bugs in deep learning libraries [@deng2023titanfuzz]. However, these approaches target general code generation or library APIs—not
+the specific challenge of exercising type system edge cases. Moreover, they generate inputs without domain-specific guidance about which language features are most likely to
+expose bugs.
+
+For type checker testing, existing automated test generation techniques face specific challenges. Random fuzzing, which generates inputs through random mutations, struggles with dynamic
+languages—Lukasczyk et al. found that lack of type information and Python's dynamic nature pose fundamental obstacles for automated test generation [@lukasczyk2020automated]. Grammar-based
+approaches can generate syntactically valid code but struggle to produce semantically meaningful programs. Padhye et al. note that while syntax generators can produce structurally valid inputs,
+ensuring semantic validity—inputs that satisfy domain-specific constraints—remains difficult [@padhye2019semantic]. For type checkers, this manifests as code that parses correctly but fails to
+exercise complex type system features like generic constraints, protocol inheritance, or type narrowing. Symbolic execution is poorly suited to type checkers, which perform static analysis rather
+than concrete execution, making symbolic execution's path-based reasoning less applicable. Moreover, none of these approaches leverage the rich signal available in existing bug reports—a source of
+information about precisely which language features and type constructs tend to trigger checker errors. This gap motivates our bug-seeded mutation approach, which combines domain knowledge from
+real bugs with LLM-based code generation to produce test cases that are both syntactically valid and semantically targeted at problematic type checker behaviors.
+
+## Bug-Seeded Mutation and MSR
+
+Mining software repositories (MSR) extracts insights from development artifacts such as commit histories, bug reports, code reviews, and issue trackers to understand software evolution and failure
+patterns. Hassan and Xie survey the field, identifying how MSR techniques enable researchers to discover bug patterns, predict defects, and understand developer behavior from historical data
+[@hassan2008mining]. For testing tools, MSR provides a crucial signal: real-world bugs reveal which language features, API combinations, and edge cases consistently challenge implementations.
+
+Bug-seeded mutation leverages this insight by using known bugs as templates for generating new test cases. Patra and Pradel introduced SemSeed, which mines bug-fixing commits from open-source
+projects, extracts semantic bug patterns (e.g., incorrect API usage, missing null checks), and uses these patterns to seed mutations in new code [@patra2021semseed]. Their approach achieved a 53%
+success rate in generating valid bugs, compared to just 7% for random fuzzing, demonstrating that real bug patterns provide strong priors for test generation. SemSeed's effectiveness stems from a
+key observation: bugs cluster around specific program constructs and API misuses, making historical bugs predictive of future failures. However, SemSeed operates at the level of runtime bugs (null
+pointer exceptions, API misuse) rather than type system bugs, and relies on pattern matching rather than semantic understanding of bug characteristics.
+
+Several empirical studies demonstrate the value of mining type-related bugs specifically. Oh and Oh analyzed 300 Python type-related bugs from GitHub, characterizing bug persistence and fix
+patterns in Python type checking [@oh2022pyter]. They identify common error patterns including incorrect type annotations, mismatched function signatures, and improper use of generic types. Chow et
+al. examined 2,766 type error fixes from open-source projects, categorizing errors by root cause and finding that certain constructs—particularly gradual typing boundaries and generic type
+parameters—account for disproportionate shares of bugs [@chow2024pyty]. These studies reveal that type errors follow identifiable patterns, but neither work uses these patterns for automated test
+generation.
+
+Our approach combines MSR with LLM-based mutation, mining closed issues from type checker repositories and using LLMs to generate semantically similar variations—addressing the gap between pattern
+based mutation and the semantic understanding needed for type system edge cases. Unlike SemSeed's syntactic pattern matching, LLM-based mutation can generalize bug characteristics to new contexts
+while maintaining semantic validity. Recent work demonstrates the promise of this combination: Yang et al. developed WhiteFox, an LLM-guided compiler fuzzing approach that outperforms template
+based fuzzers by up to 8.2x in triggering optimizations [@yang2024whitefox]. While WhiteFox targets compiler optimizations rather than type checking, it demonstrates that LLM-guided mutation can
+exceed the effectiveness of pattern-based approaches—a principle we apply to the type checker domain.
+
+## LLM-Based Code Generation
+
+Large language models have demonstrated significant capabilities in automated test generation, offering advantages over traditional approaches in terms of naturalness and diversity. Lemieux et al.
+developed CODAMOSA, which combines search-based software testing with LLM-guided generation [@lemieux2023codamosa]. Their approach conducts search-based testing until coverage improvements stall,
+then prompts an LLM to generate test cases for under-covered functions. On 486 benchmarks, CODAMOSA achieved statistically significantly higher coverage than pure search-based or LLM-only baselines,
+demonstrating that LLMs can effectively redirect search toward productive areas of the program space.
+
+Schäfer et al. conducted a large-scale empirical evaluation of LLMs for unit test generation across 1,684 API functions in JavaScript packages [@schafer2024empirical]. Their TestPilot tool achieved
+median statement coverage of 70.2% and branch coverage of 52.8%, substantially outperforming the feedback-directed test generation technique Nessie (51.3% statement coverage, 25.6% branch coverage).
+Critically, 92.8% of generated tests showed less than 50% similarity with existing tests, indicating that LLMs produce novel test cases rather than memorizing training data. However, their
+evaluation also revealed challenges: generated tests sometimes fail to compile, require iterative repair through re-prompting, and struggle with complex API interactions requiring deep
+understanding of program semantics. While these results demonstrate LLM effectiveness for runtime test generation, their application to static type checker testing remains unexplored.
+
+Beyond general test generation, Deng et al. demonstrated that historical bug-triggering code can guide LLM generation toward edge cases [@deng2024fuzzgpt]. Their FuzzGPT approach found 76 bugs
+including 11 high-priority issues in deep learning libraries, suggesting that LLM semantic understanding combined with bug patterns can exceed template-based approaches. This finding motivates
+seeding LLM generation with real type checker bugs rather than relying on zero-shot prompting.
+
+Existing approaches to type checker validation rely on conformance suites with incomplete coverage, manual test suites that cannot scale, or reactive bug reports that lag behind feature
+development. Automated techniques—fuzzing, symbolic execution, and LLM-based generation—have proven effective in adjacent domains but have not been combined for type checker testing. Pytifex
+addresses this gap by integrating differential testing across multiple type checkers, bug-seeded mutation from mined GitHub issues, LLM-based code generation, and runtime execution as an
+independent oracle.

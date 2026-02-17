@@ -1,29 +1,39 @@
 ---
-date: "2025-08-29"
+date: "2025-12-01"
 "Thesis Version": 0.0.1
 "Artifact Version": 0.0.1
 ---
 
-## Thesis {{< meta "Thesis Version" >}}
+### Reaching v1.0: A Retrospective on Pytifex and My Senior Thesis
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam rhoncus lacus in lectus vehicula finibus. Donec nec tellus eu nisl aliquam porta a id sem. Phasellus a massa nulla. Mauris quis lectus ut arcu viverra convallis. Duis efficitur pellentesque placerat. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Mauris feugiat massa in ligula commodo, in posuere mi lacinia. Donec rutrum odio non pretium dignissim. Pellentesque felis elit, lobortis quis eros a, tempor fermentum sapien. Nunc volutpat dolor non lorem pharetra dictum. Nunc interdum pulvinar felis finibus rutrum.
+**Phase 1: Prototyping and Tool Development**
+The path to this 1.0 release began with the hands-on development of the **Pytifex** prototype. I didn't just want to theorize about static
+analysis; I wanted to build something functional. I spent the early part of the project architecting the tool to successfully interact with
+GitHub's API, creating the logic to extract closed issues, and developing the initial mutation engine. This phase was about turning the abstract
+idea of "testing type checkers" into a concrete piece of software that could actually run against tools like `mypy`.
 
-### Changes
+**Phase 2: Academic Writing (Chapters 1 & 2)**
+While building the tool, I simultaneously worked on the academic foundation of the project. I drafted **Chapter 1**, focusing on the motivation
+and the specific problem statement regarding false positives in Python. Following that, I conducted extensive literature reviews to write
+**Chapter 2 (Related Works)**, where I analyzed the current state of the art in static analysis and identifying the gap my research fills.
+Writing these chapters helped me clarify exactly *why* Pytifex is necessary and grounded my coding decisions in actual research data.
 
-* Ipsum'd a lorem
-* Determined the vehicula finibus
-* Aliquam porta a id senior sem
-* Tempus fugit semesterium
-* Tellem whatus we changeus
+**Phase 3: Feedback Loops and Presentations**
+A crucial part of this process was the continuous feedback loop. I regularly met with my professors to ensure the scope was manageable yet
+significant, and I engaged in discussions with my classmates to refine my approach. I also delivered formal presentations that forced me to
+defend my methodology and articulate my progress clearly. These discussions were vital; they helped me pivot when necessary and kept the project
+aligned with its goals.
 
-## Artifact {{< meta "Artifact Version" >}}
+**Phase 4: Documentation and Weekly Updates**
+Throughout the entire semester, I maintained a steady stream of documentation. Writing the weekly posts wasn't just a requirement; it was a way
+to track my own progress and document the hurdles I overcame in real-time. This consistent reporting led directly to the creation of the project
+website, which now serves as the public face of the work.
 
-Nullam ultricies et justo in vehicula. Nulla vitae lectus vitae mauris mattis elementum nec a mi. In hac habitasse platea dictumst. Nunc pretium ultrices metus, id interdum lectus tincidunt in. Sed venenatis mauris nec ornare iaculis. Vestibulum eget nisl turpis. Integer viverra nunc ac nulla auctor bibendum. Fusce eget lectus quis mauris vehicula convallis. Curabitur imperdiet ac metus ac blandit. Aliquam congue faucibus tortor, vitae pretium elit auctor sit amet. Proin tincidunt posuere sagittis. Ut quis tellus orci. Quisque placerat rutrum augue, id pretium velit consectetur in. Maecenas ac porta eros, et lobortis magna. Integer sollicitudin eget ex vitae facilisis. Fusce pellentesque vel tellus sed pretium.
+**Conclusion: The v1.0 Release**
+All of these distinct efforts—the coding, the chapter writing, the meetings, and the presentations—have culminated in this v1.0 release. The
+prototype has matured into a release-ready state, the website is live on GitHub Pages, and the first two chapters are polished and integrated
+into the final thesis PDF available in the repository.
 
-### Changes
-
-* Changed null values to nullam
-* Nunc'd the premium ultrices menus
-* When vitae lectus, do as the Romans do
-* The bug clearly was in hac habitasse
-* If you see velit, let consectetur in
+**Links:**
+* **Project Website:** [Link to your GitHub Pages site]
+* **Thesis PDF Release:** [Link to your GitHub Releases page]
