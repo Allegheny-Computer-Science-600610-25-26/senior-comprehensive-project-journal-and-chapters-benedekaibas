@@ -49,8 +49,8 @@ with historical bug-triggering code generate significantly more edge-case progra
 To demonstrate the pipeline end-to-end, we trace one seed from mining through mutation to a confirmed type checker bug.
 
 Code Listing 3.1(a) shows the original seed, mined from mypy issue #18524. The bug report described a false positive in mypy 1.14.1: mypy incorrectly marked match arms as
-unreachable when pattern matching on type objects with --warn-unreachable enabled. The code is valid Python that executes without error at runtime—mypy's diagnostic was
-wrong. (This bug has since been fixed; current mypy versions handle this pattern correctly.)
+unreachable when pattern matching on type objects with `--warn-unreachable` enabled. The code is valid Python that executes without error at runtime—mypy's diagnostic was
+wrong. (This bug has since been fixed; the original false positive required the `--warn-unreachable` flag.)
 **Code Listing 3.1(a): Original seed from mypy #18524 (false positive).**
 ```{python}
 import builtins
