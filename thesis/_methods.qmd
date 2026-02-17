@@ -16,3 +16,116 @@ false negatives.
 The pipeline's design reflects two key insights from our analysis of related work. First, differential testing alone cannot determine which type checker is correct when
 disagreements occur—it only signals that at least one implementation is wrong. Second, historical bug reports encode precisely which language features and type constructs
 tend to trigger checker failures, making them valuable seeds for generating new test cases.
+
+## Mining Type Checker Bug Reports
+
+Pytifex mines seed bugs from five type checker repositories: mypy, pyrefly, zuban, ty, and pyright. Unlike static corpus approaches that perform one-time bulk scraping, each
+pipeline run queries up to 100 candidate issues per repository, sorted by most recent update. This recency-biased sampling means the seed pool shifts naturally as
+repositories evolve—recently closed bugs enter the query window while older issues fall out—allowing Pytifex to incorporate emerging patterns without manual curation. The
+same issue may be mined across multiple runs, but the most recent bugs are consistently prioritized.
+
+### Mining Process
+
+Pytifex queries the GitHub REST API for closed issues labeled as bugs from each repository, sorted by most recent update. This retrieves up to 100
+candidates per repository. We then apply post-fetch filtering to ensure seed quality:
+
+**Bug confirmation filtering**. Issues closed as "not planned" are excluded—these represent wontfix decisions, duplicates, or reports that maintainers determined were not
+actual bugs. Only issues closed with resolutions indicating a genuine bug fix are retained.
+
+**Code extraction**. From the remaining issues, we extract Python code blocks. An issue contributes a seed example if its body contains either a fenced code block (`python`
+or `py`) or, for Pyrefly, a sandbox URL encoding executable Python. We require at least 50 characters to exclude trivial snippets while permitting the minimal reproducible
+examples typical of well-filed bug reports.
+
+**Sampling**. After shuffling the filtered issues, we extract up to 5 code examples per repository. A single issue may contain multiple code blocks; our limit applies to
+extracted examples, not issues. This multi-stage filtering reduces each repository's candidates to a handful of seeds, yielding approximately 10–25 total seed examples per
+pipeline run across all five repositories, with variation depending on repository maturity and the prevalence of extractable code in bug reports.
+
+The recency bias serves a deliberate purpose: recently closed bugs tend to exercise newer language features (e.g., PEP 695 type parameter syntax, PEP 742 TypeIs) that are
+more likely to expose disagreements in less mature type checkers. This seed-based mutation strategy draws on FuzzGPT [Deng et al., 2024], which demonstrated that LLMs primed
+with historical bug-triggering code generate significantly more edge-case programs than zero-shot generation.
+
+## Illustrative Example: From Mined Seed to New Finding
+
+To demonstrate the pipeline end-to-end, we trace one seed from mining through mutation to a confirmed type checker bug.
+
+Code Listing 3.1(a) shows the original seed, mined from mypy issue #18524. The bug report described a false positive in mypy 1.14.1: mypy incorrectly marked match arms as
+unreachable when pattern matching on type objects with --warn-unreachable enabled. The code is valid Python that executes without error at runtime—mypy's diagnostic was
+wrong. (This bug has since been fixed; current mypy versions handle this pattern correctly.)
+**Code Listing 3.1(a): Original seed from mypy #18524 (false positive).**
+```{python}
+import builtins
+import types
+
+def frobulate(field_type: type) -> str:
+    match field_type:
+        case builtins.int:
+            ret = "foo"
+        case builtins.str:    # mypy: "Statement is unreachable"
+            ret = "foo"
+        case builtins.bytes:
+            ret = "foo"
+        case builtins.bool:
+            ret = "foo"
+        case types.NoneType:
+            ret = "foo"
+        case _:
+            return "bar"
+    return ret
+```
+
+Given this seed, the LLM generated a variation that explores a different construction in the same feature area: matching on `type()` with positional sub-patterns, combined
+with generics and the `Self` type.
+
+**Code Listing 3.1(b): LLM-generated variation (adapted for presentation).**
+```{python}
+from typing import TypeVar, Self, Union, Any
+import copy
+
+T = TypeVar("T")
+
+class Box[T]:
+    def __init__(self, value: T) -> None:
+        self.value = value
+
+    def copy(self) -> Self:
+        return type(self)(copy.deepcopy(self.value))
+
+    def unwrap(self) -> T:
+        return self.value
+
+class IntBox(Box[int]):
+    def double(self) -> Self:
+        return type(self)(self.value * 2)
+
+class StrBox(Box[str]):
+    def upper(self) -> Self:
+        return type(self)(self.value.upper())
+
+def inspect_box_return(box_instance: Union[Box[Any], IntBox, StrBox]) -> str:
+    copied_box = box_instance.copy()
+
+    match type(copied_box):
+        case type(IntBox(0)):   # TypeError at runtime
+            return f"Copied an IntBox. Value: {copied_box.unwrap() * 3}"
+        case type(StrBox("")):
+            return f"Copied a StrBox. Value: {copied_box.unwrap().lower()}"
+        case type(Box(None)):
+            return f"Copied a generic Box. Value: {copied_box.unwrap()}"
+        case _:
+            return f"Unknown Box type: {type(copied_box).__name__}"
+
+if __name__ == "__main__":
+    print(inspect_box_return(IntBox(5)))   # Crashes here
+```
+
+Unlike the original seed, which was valid code that mypy incorrectly rejected, the variation contains a genuine bug: `case type(IntBox(0))` attempts to match on `type()` with
+a positional sub-pattern, but `type` does not define `__match_args__`. Python's runtime raises `TypeError: type() accepts 0 positional sub-patterns (1 given)` on every
+execution.
+
+When tested across four type checkers, mypy, pyrefly, and zuban all correctly rejected the code, reporting that `type` does not define `__match_args__`. However, ty accepted
+the code, emitting only an unrelated warning about a possibly missing attribute. This constitutes a false negative: ty missed a bug that crashes deterministically at runtime.
+The pipeline's Tier 1 evaluation (Section 3.X) confirmed this verdict automatically with confidence 0.95.
+
+This example illustrates a key property of seed-based mutation: the LLM did not reproduce the original false positive. Instead, it explored a related construction in the
+match-on-types feature space that exposed a different deficiency—a false negative in a different checker. The pipeline's value lies not in replicating known bugs but in using
+them as starting points to discover new ones.
