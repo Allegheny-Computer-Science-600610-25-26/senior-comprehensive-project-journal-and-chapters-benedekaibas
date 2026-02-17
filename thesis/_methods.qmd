@@ -129,3 +129,5 @@ The pipeline's Tier 1 evaluation (Section 3.X) confirmed this verdict automatica
 This example illustrates a key property of seed-based mutation: the LLM did not reproduce the original false positive. Instead, it explored a related construction in the
 match-on-types feature space that exposed a different deficiency—a false negative in a different checker. The pipeline's value lies not in replicating known bugs but in using
 them as starting points to discover new ones.
+
+## LLM-Based Test Case Generation
