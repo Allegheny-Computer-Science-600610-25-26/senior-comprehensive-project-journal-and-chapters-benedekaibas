@@ -131,3 +131,51 @@ match-on-types feature space that exposed a different deficiency—a false negat
 them as starting points to discover new ones.
 
 ## LLM-Based Test Case Generation
+
+Pytifex uses the mined seed examples to construct prompts that guide an LLM toward generating code likely to cause type checker disagreements. Rather than asking the LLM to
+generate test cases from scratch—which tends to produce ordinary programs that all checkers handle identically [Deng et al., 2023]—we prime it with real bug-triggering code
+and explicit divergence targets.
+
+### Prompt Construction
+
+Each generation prompt contains three components:
+
+- 1 **Seed examples**. Up to 5 code examples from the mined seed pool, each annotated with its source repository, issue number, labels, and whether the original bug was a
+false positive or false negative. This metadata helps the LLM understand why each seed triggered a bug, not just what the code does.
+
+- 2 **Divergence patterns**. A curated set of feature interaction patterns known to cause checker disagreements, such as Protocol methods with default arguments (PEP 544),
+TypedDict with mixed Required/NotRequired inheritance (PEPs 589, 655), and ParamSpec applied to classmethods (PEP 612). These patterns serve as additional generation targets
+beyond what the seeds demonstrate.
+
+- 3 **Mutation strategy**. Explicit instructions to mutate seeds into novel variations, not reproduce them: combine orthogonal patterns (e.g., TypedDict + Protocol),
+perturb seeds by changing types, adding generics, or wrapping in decorators, and probe the boundaries of what checkers catch. If a seed shows a false positive, the LLM is
+instructed to mutate it toward cases that other checkers also mishandle; if a seed shows a false negative, to explore the detection boundary.
+
+Every generated example is required to reference a specific seed issue, establishing provenance from the generated test case back to the real bug that inspired it. Examples
+without valid provenance are discarded.
+
+### Mutation-Filter Loop
+
+The pipeline operates in a mutation-filter loop, iterating until a target number of disagreements is reached or a maximum number of attempts is exhausted. Each iteration
+proceeds as follows:
+
+- 1 **Mutate**. The LLM produces a batch of candidate programs (default: 15 per batch) by mutating the seed examples according to the prompt. Successive batches use a
+rotating window over the seed pool so that different batches draw on overlapping but distinct seed subsets, promoting diversity across iterations.
+
+- 2 **Test**. Each candidate is written to a temporary file and executed sequentially by all four type checkers with default configurations and a 30-second timeout. The
+checker's exit code and output are recorded.
+
+- 3 **Filter**. A candidate exhibits a disagreement if at least one checker's status differs from another's. Formally, let S = {s₁, s₂, s₃, s₄} be the set of checker
+statuses, where each sᵢ ∈ {ok, error}. A disagreement exists when |S| > 1 — that is, not all checkers agree. For example, if mypy, pyrefly, and zuban report error but ty
+reports ok, the candidate is a disagreement. Candidates where all four checkers agree are discarded.
+
+- 4 **Refine**. Examples that pass through the Filter step without exhibiting a disagreement—where all four checkers reported the same status—undergo up to two refinement
+attempts. The refinement prompt includes the example's source code and the actual output from each checker, asking the LLM to minimally modify the code to induce a
+disagreement. Strategies include adding a subtle type error that only some checkers catch, fixing an obvious error while preserving a subtle edge case, or changing the typing
+pattern (e.g., introducing a Protocol or TypeGuard). Refinement is iterative: if the first attempt does not produce a disagreement, the second attempt refines the output of
+the first, giving the LLM two incremental adjustments rather than two independent attempts on the original. If neither attempt produces a disagreement, the example is
+discarded.
+
+This closed-loop design—where checker feedback drives subsequent mutation—distinguishes Pytifex from one-shot generation approaches. The refinement step recovers value from
+candidates that would otherwise be discarded: across our evaluation runs, approximately 71% of generated candidates exhibited disagreements, with refinement contributing a
+portion of the successful examples.
