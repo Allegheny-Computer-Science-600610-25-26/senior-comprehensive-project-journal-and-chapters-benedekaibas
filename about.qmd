@@ -1,13 +1,16 @@
 ---
-title: "About"
-image: profile.jpg
+title: "Welcome To My Page"
+image: profile_pic.jpeg
 about:
   template: jolla
   links:
     - icon: github
       text: Github
-      href: https://github.com
+      href: https://github.com/benedekaibas
 
 ---
 
-About this blog
+Hey there! My name is Benedek Kaibas and I am a senior computer science student at Allegheny College. My senior thesis is An Empirical Study
+on Static Analyzer Toolsets to Reduce False Positives, False Negatives in Python Type Checkers.
+
+I am interested in C++ and Compiler programming while also researching in the static analysis area of Python!

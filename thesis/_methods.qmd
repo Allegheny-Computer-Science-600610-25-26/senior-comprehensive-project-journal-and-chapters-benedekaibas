@@ -1,18 +1,182 @@
-# Method of approach
+# Methods
 
-This chapter answers the "how" question - how did you complete your project,
-including the overall design of your study, details of the algorithms and tools you
-have used, etc.  Use technical diagrams, equations, algorithms, and paragraphs of text
-to describe the research that you have completed. Be sure to number all figures and
-tables and to explicitly refer to them in your text.
+## Overview and System Architecture
 
-This should contain:
+Pytifex employs a four-stage pipeline to systematically generate test cases that expose type checker bugs: (1) mining bug reports from type checker repositories, (2)
+LLM-based mutation to generate semantically similar variations, (3) differential testing across multiple type checkers to identify disagreements, and (4) runtime validation
+to establish ground truth.
+Figure 3.1 illustrates this architecture.
 
-* lists
-* with points
-* and more points
-  * possibly subpoints
+![Figure 3.1](images/pytifex_pipeline.png)
+**Figure 3.1:** Pytifex system architecture. Seed bugs mined from closed GitHub issues are mutated by Gemini to produce semantically similar variants that may trigger related
+failures across different type checkers. Valid variants are tested across four type checkers to identify disagreements. Disagreement-triggering programs are executed at
+runtime; `TypeError`, `KeyError`, or `AttributeError` constitutes definitive evidence of a false negative. The pipeline guarantees that 100% of final outputs are confirmed
+false negatives.
 
-For those projects whose implications address social or moral issues (i.e. ethical
-standards, causes, effects), you will want to use this section to describe how you
-actively mitigated or considered these issues.
+The pipeline's design reflects two key insights from our analysis of related work. First, differential testing alone cannot determine which type checker is correct when
+disagreements occur—it only signals that at least one implementation is wrong. Second, historical bug reports encode precisely which language features and type constructs
+tend to trigger checker failures, making them valuable seeds for generating new test cases.
+
+## Mining Type Checker Bug Reports
+
+Pytifex mines seed bugs from five type checker repositories: mypy, pyrefly, zuban, ty, and pyright. Unlike static corpus approaches that perform one-time bulk scraping, each
+pipeline run queries up to 100 candidate issues per repository, sorted by most recent update. This recency-biased sampling means the seed pool shifts naturally as
+repositories evolve—recently closed bugs enter the query window while older issues fall out—allowing Pytifex to incorporate emerging patterns without manual curation. The
+same issue may be mined across multiple runs, but the most recent bugs are consistently prioritized.
+
+### Mining Process
+
+Pytifex queries the GitHub REST API for closed issues labeled as bugs from each repository, sorted by most recent update. This retrieves up to 100
+candidates per repository. We then apply post-fetch filtering to ensure seed quality:
+
+**Bug confirmation filtering**. Issues closed as "not planned" are excluded—these represent wontfix decisions, duplicates, or reports that maintainers determined were not
+actual bugs. Only issues closed with resolutions indicating a genuine bug fix are retained.
+
+**Code extraction**. From the remaining issues, we extract Python code blocks. An issue contributes a seed example if its body contains either a fenced code block (`python`
+or `py`) or, for Pyrefly, a sandbox URL encoding executable Python. We require at least 50 characters to exclude trivial snippets while permitting the minimal reproducible
+examples typical of well-filed bug reports.
+
+**Sampling**. After shuffling the filtered issues, we extract up to 5 code examples per repository. A single issue may contain multiple code blocks; our limit applies to
+extracted examples, not issues. This multi-stage filtering reduces each repository's candidates to a handful of seeds, yielding approximately 10–25 total seed examples per
+pipeline run across all five repositories, with variation depending on repository maturity and the prevalence of extractable code in bug reports.
+
+The recency bias serves a deliberate purpose: recently closed bugs tend to exercise newer language features (e.g., PEP 695 type parameter syntax, PEP 742 TypeIs) that are
+more likely to expose disagreements in less mature type checkers. This seed-based mutation strategy draws on FuzzGPT [Deng et al., 2024], which demonstrated that LLMs primed
+with historical bug-triggering code generate significantly more edge-case programs than zero-shot generation.
+
+## Illustrative Example: From Mined Seed to New Finding
+
+To demonstrate the pipeline end-to-end, we trace one seed from mining through mutation to a confirmed type checker bug.
+
+Code Listing 3.1(a) shows the original seed, mined from mypy issue #18524. The bug report described a false positive in mypy 1.14.1: mypy incorrectly marked match arms as
+unreachable when pattern matching on type objects with `--warn-unreachable` enabled. The code is valid Python that executes without error at runtime—mypy's diagnostic was
+wrong. (This bug has since been fixed; the original false positive required the `--warn-unreachable` flag.)
+**Code Listing 3.1(a): Original seed from mypy #18524 (false positive).**
+```{python}
+import builtins
+import types
+
+def frobulate(field_type: type) -> str:
+    match field_type:
+        case builtins.int:
+            ret = "foo"
+        case builtins.str:    # mypy: "Statement is unreachable"
+            ret = "foo"
+        case builtins.bytes:
+            ret = "foo"
+        case builtins.bool:
+            ret = "foo"
+        case types.NoneType:
+            ret = "foo"
+        case _:
+            return "bar"
+    return ret
+```
+
+Given this seed, the LLM generated a variation that explores a different construction in the same feature area: matching on `type()` with positional sub-patterns, combined
+with generics and the `Self` type.
+
+**Code Listing 3.1(b): LLM-generated variation (adapted for presentation).**
+```{python}
+from typing import TypeVar, Self, Union, Any
+import copy
+
+T = TypeVar("T")
+
+class Box[T]:
+    def __init__(self, value: T) -> None:
+        self.value = value
+
+    def copy(self) -> Self:
+        return type(self)(copy.deepcopy(self.value))
+
+    def unwrap(self) -> T:
+        return self.value
+
+class IntBox(Box[int]):
+    def double(self) -> Self:
+        return type(self)(self.value * 2)
+
+class StrBox(Box[str]):
+    def upper(self) -> Self:
+        return type(self)(self.value.upper())
+
+def inspect_box_return(box_instance: Union[Box[Any], IntBox, StrBox]) -> str:
+    copied_box = box_instance.copy()
+
+    match type(copied_box):
+        case type(IntBox(0)):   # TypeError at runtime
+            return f"Copied an IntBox. Value: {copied_box.unwrap() * 3}"
+        case type(StrBox("")):
+            return f"Copied a StrBox. Value: {copied_box.unwrap().lower()}"
+        case type(Box(None)):
+            return f"Copied a generic Box. Value: {copied_box.unwrap()}"
+        case _:
+            return f"Unknown Box type: {type(copied_box).__name__}"
+
+if __name__ == "__main__":
+    print(inspect_box_return(IntBox(5)))   # Crashes here
+```
+
+Unlike the original seed, which was valid code that mypy incorrectly rejected, the variation contains a genuine bug: `case type(IntBox(0))` attempts to match on `type()` with
+a positional sub-pattern, but `type` does not define `__match_args__`. Python's runtime raises `TypeError: type() accepts 0 positional sub-patterns (1 given)` on every
+execution.
+
+When tested across four type checkers, mypy, pyrefly, and zuban all correctly rejected the code, reporting that `type` does not define `__match_args__`. However, ty accepted
+the code, emitting only an unrelated warning about a possibly missing attribute. This constitutes a false negative: ty missed a bug that crashes deterministically at runtime.
+The pipeline's Tier 1 evaluation (Section 3.X) confirmed this verdict automatically with confidence 0.95.
+
+This example illustrates a key property of seed-based mutation: the LLM did not reproduce the original false positive. Instead, it explored a related construction in the
+match-on-types feature space that exposed a different deficiency—a false negative in a different checker. The pipeline's value lies not in replicating known bugs but in using
+them as starting points to discover new ones.
+
+## LLM-Based Test Case Generation
+
+Pytifex uses the mined seed examples to construct prompts that guide an LLM toward generating code likely to cause type checker disagreements. Rather than asking the LLM to
+generate test cases from scratch—which tends to produce ordinary programs that all checkers handle identically [Deng et al., 2023]—we prime it with real bug-triggering code
+and explicit divergence targets.
+
+### Prompt Construction
+
+Each generation prompt contains three components:
+
+- 1 **Seed examples**. Up to 5 code examples from the mined seed pool, each annotated with its source repository, issue number, labels, and whether the original bug was a
+false positive or false negative. This metadata helps the LLM understand why each seed triggered a bug, not just what the code does.
+
+- 2 **Divergence patterns**. A curated set of feature interaction patterns known to cause checker disagreements, such as Protocol methods with default arguments (PEP 544),
+TypedDict with mixed Required/NotRequired inheritance (PEPs 589, 655), and ParamSpec applied to classmethods (PEP 612). These patterns serve as additional generation targets
+beyond what the seeds demonstrate.
+
+- 3 **Mutation strategy**. Explicit instructions to mutate seeds into novel variations, not reproduce them: combine orthogonal patterns (e.g., TypedDict + Protocol),
+perturb seeds by changing types, adding generics, or wrapping in decorators, and probe the boundaries of what checkers catch. If a seed shows a false positive, the LLM is
+instructed to mutate it toward cases that other checkers also mishandle; if a seed shows a false negative, to explore the detection boundary.
+
+Every generated example is required to reference a specific seed issue, establishing provenance from the generated test case back to the real bug that inspired it. Examples
+without valid provenance are discarded.
+
+### Mutation-Filter Loop
+
+The pipeline operates in a mutation-filter loop, iterating until a target number of disagreements is reached or a maximum number of attempts is exhausted. Each iteration
+proceeds as follows:
+
+- 1 **Mutate**. The LLM produces a batch of candidate programs (default: 15 per batch) by mutating the seed examples according to the prompt. Successive batches use a
+rotating window over the seed pool so that different batches draw on overlapping but distinct seed subsets, promoting diversity across iterations.
+
+- 2 **Test**. Each candidate is written to a temporary file and executed sequentially by all four type checkers with default configurations and a 30-second timeout. The
+checker's exit code and output are recorded.
+
+- 3 **Filter**. A candidate exhibits a disagreement if at least one checker's status differs from another's. Formally, let S = {s₁, s₂, s₃, s₄} be the set of checker
+statuses, where each sᵢ ∈ {ok, error}. A disagreement exists when |S| > 1 — that is, not all checkers agree. For example, if mypy, pyrefly, and zuban report error but ty
+reports ok, the candidate is a disagreement. Candidates where all four checkers agree are discarded.
+
+- 4 **Refine**. Examples that pass through the Filter step without exhibiting a disagreement—where all four checkers reported the same status—undergo up to two refinement
+attempts. The refinement prompt includes the example's source code and the actual output from each checker, asking the LLM to minimally modify the code to induce a
+disagreement. Strategies include adding a subtle type error that only some checkers catch, fixing an obvious error while preserving a subtle edge case, or changing the typing
+pattern (e.g., introducing a Protocol or TypeGuard). Refinement is iterative: if the first attempt does not produce a disagreement, the second attempt refines the output of
+the first, giving the LLM two incremental adjustments rather than two independent attempts on the original. If neither attempt produces a disagreement, the example is
+discarded.
+
+This closed-loop design—where checker feedback drives subsequent mutation—distinguishes Pytifex from one-shot generation approaches. The refinement step recovers value from
+candidates that would otherwise be discarded: across our evaluation runs, approximately 71% of generated candidates exhibited disagreements, with refinement contributing a
+portion of the successful examples.
+
