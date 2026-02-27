@@ -179,3 +179,4 @@ discarded.
 This closed-loop design—where checker feedback drives subsequent mutation—distinguishes Pytifex from one-shot generation approaches. The refinement step recovers value from
 candidates that would otherwise be discarded: across our evaluation runs, approximately 71% of generated candidates exhibited disagreements, with refinement contributing a
 portion of the successful examples.
+
