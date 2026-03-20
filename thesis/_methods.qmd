@@ -180,3 +180,5 @@ This closed-loop design—where checker feedback drives subsequent mutation—di
 candidates that would otherwise be discarded: across our evaluation runs, approximately 71% of generated candidates exhibited disagreements, with refinement contributing a
 portion of the successful examples.
 
+## Saving Code Examples
+
