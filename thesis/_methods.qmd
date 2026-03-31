@@ -182,3 +182,137 @@ portion of the successful examples.
 
 ## Saving Code Examples
 
+When the mutation-filter loop completes, Pytifex persists all disagreement-triggering examples to disk in a timestamped directory under `generated_examples/`. Each disagreement is saved as a
+standalone `.py` file containing the generated source code, and a companion `results.json` records the full pipeline run: the model used, the total number of candidates generated, the number of
+disagreements found, the per-batch success rate, and for each disagreement the raw output and status (`ok` or `error`) from every type checker. This structured output serves two purposes: it
+provides a reproducible artifact for subsequent evaluation, and it preserves the provenance chain from mined seed to generated variant to checker outcome.
+
+The results JSON also records the `seed_issue` field for each disagreement—the GitHub issue URL that inspired the generated code—enabling traceability from a confirmed finding back through the
+LLM mutation to the original bug report. Examples that lack a valid `seed_issue` reference are discarded during generation, ensuring that every saved disagreement has documented provenance.
+
+## Establishing Ground Truth: The Evaluation Oracle
+
+Differential testing identifies disagreements but cannot determine which checker is correct. A critical question remains: when mypy reports `ok` and ty reports `error`, which one is right? To
+answer this, Pytifex employs a multi-tiered evaluation system that combines runtime execution, property-based testing, AST-level specification analysis, and static flow analysis to establish
+ground truth with varying degrees of confidence.
+
+The evaluation system processes each disagreement through multiple independent oracles, each contributing evidence toward a final verdict per checker. The tiers are not sequential filters—all
+tiers run on every disagreement, and their findings are aggregated by a priority-based verdict determination function that resolves conflicts by preferring higher-confidence evidence.
+
+### Tier 0: AST-Based PEP Oracle
+
+Tier 0 performs source-level AST analysis to identify definitive violations of Python typing PEP specifications, independently of any type checker output. The oracle parses the generated source
+code and applies a battery of rule-based checks derived from PEPs 484, 526, 544, 586, 589, 591, 612, 634, 646, 647, 655, 673, 692, 695, 696, 698, 705, and 742. Each rule targets a specific
+construct—for example, `TDICT003` flags direct access to a `NotRequired` TypedDict field without a membership check (PEP 589), `FINAL003` detects overriding a `@final` method in a subclass
+(PEP 591), and `LSP001` identifies Liskov Substitution Principle violations in method overrides (PEP 484).
+
+Each finding carries a confidence score; only findings with confidence ≥ 0.85 are retained. The oracle then evaluates each type checker by parsing its raw output into structured diagnostics
+(line number, error code, message, severity) and matching them against the oracle's findings. A finding is considered matched if the checker reported an error within 5 lines of the violation and
+the error code or message keywords correspond to the violation category. The verdict logic is:
+
+- **CORRECT**: All oracle findings matched by checker diagnostics.
+- **INCORRECT**: One or more findings not reported by the checker (false negative).
+- **UNCERTAIN**: No oracle findings exist, or upstream checker errors may have blocked detection of the violation.
+
+The oracle's strength lies in its independence: it derives ground truth from PEP specifications rather than from checker consensus, avoiding the circularity of using checkers to validate
+themselves. However, it is limited to constructs with unambiguous specification-level rules and cannot evaluate advanced features like `TypeGuard`, `ParamSpec`, or `TypeVarTuple`, which require
+semantic reasoning beyond AST pattern matching.
+
+### Tier 1: Runtime Crash Detection
+
+Tier 1 executes the generated code and catches type-related runtime exceptions—`TypeError`, `KeyError`, and `AttributeError`. A runtime crash constitutes the highest-confidence evidence of a
+type bug: if code raises `TypeError` at runtime, any type checker that reported `ok` is definitively incorrect (a false negative). This oracle is asymmetric—it can prove false negatives but
+cannot prove false positives—because code may run successfully without exercising every type-incorrect path.
+
+The implementation goes beyond naive execution in three ways. First, it walks the full traceback to identify the root-cause line, not just the final frame, attributing the bug to the line in the
+generated source where the type violation originates rather than to library internals. Second, it inspects exception chains via `__cause__` and `__context__`, surfacing chained type errors that
+would otherwise be masked. Third, it isolates `try/except` bodies by extracting them via AST analysis and re-executing them independently. This surfaces type errors that the original code
+deliberately swallows—a common pattern in generated code where `try/except Exception` blocks mask `TypeError` or `KeyError` exceptions that should propagate. Bugs discovered through isolation
+receive a slightly reduced confidence of 0.95 (versus 1.0 for direct crashes) to reflect the contextual difference.
+
+### Tier 2: Hypothesis Property-Based Testing
+
+Tier 2 employs Hypothesis, a property-based testing framework, to exercise code paths that Tier 1's single execution may not reach. Rather than relying on the `if __name__ == "__main__"` block
+alone, Tier 2 systematically generates inputs for every user-defined function and class method in the generated code.
+
+The process operates in five steps:
+
+- 1 **Definition extraction**. The AST is parsed to identify all user-defined functions, constructors, and methods. Built-in names, dunder methods, and private functions are excluded to focus
+on the code's public API.
+
+- 2 **Namespace construction**. The source code is executed once with `__name__` set to a non-`"__main__"` value, building a live namespace containing all defined classes and functions. This
+step is necessary because Hypothesis requires callable objects, not AST nodes.
+
+- 3 **Signature introspection**. For each callable, Python's `inspect.signature` and `typing.get_type_hints` extract parameter types and return annotations. These concrete type hints are
+mapped to Hypothesis strategies—`int` maps to `st.integers()`, `str` to `st.text()`, `list[int]` to `st.lists(st.integers())`, and so on. Parameters with `ParamSpec` components or
+unresolvable types are skipped rather than generating arbitrary values.
+
+- 4 **Property test execution**. Each callable is tested with `@given` decorators using the generated strategies. The property under test is that calling the function with type-conforming
+inputs should not raise `TypeError`, `KeyError`, or `AttributeError`. Hypothesis runs up to 30 examples per callable with no deadline, allowing slow-executing generated code to complete.
+
+- 5 **Return type validation**. When a function declares a return type and the `typeguard` library is available, return values are validated against their declared type annotation, catching
+cases where a function's implementation silently returns an incompatible type.
+
+Tier 2 also includes targeted tests that exercise specific call sites found in the source code's `if __name__ == "__main__"` block and class method chains, using AST analysis to construct
+invocation sequences that mirror the code's intended usage patterns.
+
+Bugs discovered by Hypothesis receive confidence 0.85, reflecting that they are genuine runtime failures triggered by valid inputs, though the inputs are synthetically generated rather than
+reflecting the code's original execution path.
+
+### Tier 3: PEP Specification Compliance
+
+Tier 3 applies a curated set of PEP-derived rules to each checker's output, determining whether the checker's behavior aligns with the official Python typing specifications. Unlike Tier 0,
+which analyzes the source code independently, Tier 3 examines the checker outputs themselves—matching their error messages against regex patterns derived from specific PEP requirements.
+
+The rule set covers 24 PEPs and encompasses patterns including method override compatibility (PEP 484), protocol instantiation (PEP 544), `Final` reassignment and subclassing (PEP 591),
+`TypedDict` key requirements (PEPs 589, 655), `ParamSpec` and `Concatenate` usage (PEP 612), `TypeGuard` and `TypeIs` semantics (PEPs 647, 742), and `ReadOnly` TypedDict fields (PEP 705).
+
+For each rule, the evaluator checks whether the checker's output contains a matching error message and whether the checker's overall status (error or ok) agrees with the PEP's prescribed
+behavior. For example, if PEP 591 specifies that reassigning a `Final` variable should produce an error, and mypy reports such an error while ty does not, mypy is marked correct and ty
+incorrect for that rule. Tier 3 also incorporates a source-aware analysis pass that uses the AST oracle findings from Tier 0 and checks whether each checker reported errors near the identified
+violation lines, providing an independent cross-check.
+
+Module import errors and `reveal_type` diagnostics are filtered out to avoid false matches—these are tool-specific behaviors unrelated to type correctness.
+
+### Tier 4: Static Flow Analysis and Design Differences
+
+When Tiers 0–3 leave a checker's verdict uncertain, Tier 4 performs additional static analysis covering constructs that earlier tiers cannot evaluate. This includes import availability checks
+(whether a typing construct like `TypeIs` or `ReadOnly` is available in the target Python version or requires `typing_extensions`), variance constraint analysis, type narrowing flow through
+`TypeIs`/`TypeGuard`/`isinstance`/`match` statements, nominal type boundary enforcement for `NewType`, and match exhaustiveness verification.
+
+Cases that remain uncertain after all four tiers represent genuine design differences between type checkers—areas where the Python typing specification is ambiguous or where checkers make
+legitimately different approximation choices. These are documented as `UNCERTAIN` rather than forced into a potentially incorrect verdict.
+
+### Verdict Determination
+
+The final verdict for each checker on each disagreement is determined by a priority function that aggregates evidence from all tiers. The priority order is:
+
+- 1 **Tier 1** (runtime crashes): If proven runtime bugs exist, checkers that caught them are `CORRECT`; checkers that missed them are `INCORRECT` with confidence 0.95.
+- 2 **Tier 0** (AST oracle): If the oracle produced non-uncertain findings, its verdict is adopted with the oracle's confidence score.
+- 3 **Tier 2** (Hypothesis): If property-based testing found bugs, checkers are evaluated against the bug locations with confidence 0.85.
+- 4 **Tier 3** (PEP compliance): If PEP rules matched, the checker's compliance is scored with confidence 0.80.
+- 5 **Tier 4** (static analysis): Remaining verdicts from static flow analysis, accepted at confidence ≥ 0.80.
+- 6 **False positive detection**: If no tier found any violations and the oracle confirmed the source is violation-free, but a checker still reports errors, that checker is marked `INCORRECT`
+for producing false positives—provided the source does not use typing constructs beyond the oracle's coverage (e.g., `ParamSpec`, `TypeVarTuple`).
+
+If no tier provides definitive evidence, the verdict is `UNCERTAIN` with confidence 0.5.
+
+### Agent-Based Resolution of Uncertain Cases
+
+For disagreements where all tiers yield `UNCERTAIN`, Pytifex optionally invokes the Gemini LLM as a final arbiter. The agent receives the source code, the target checker's output, and all
+other checkers' outputs, and is asked to determine whether the checker's behavior is `CORRECT`, `INCORRECT`, or `UNCERTAIN`, citing the specific PEP section that supports its verdict. The
+agent's response is parsed for a structured JSON verdict; if parsing fails, the system falls back to extracting the verdict from prose. Agent-resolved verdicts are reported separately from
+tier-based verdicts, maintaining a clear distinction between deterministic evaluation and LLM-based judgment.
+
+## Implementation
+
+Pytifex is implemented in Python 3.12 and uses the Google Gemini API (via `httpx`) for LLM-based code generation and agent-based evaluation. The pipeline is orchestrated by a command-line
+interface that supports four modes: `full` (generation + evaluation), `generate` (generation only), `check` (run type checkers on existing examples), and `eval` (evaluate existing results).
+Type checkers are invoked via `subprocess` with a 30-second timeout per file, using their default configurations. The tool depends on `hypothesis` and `typeguard` for Tier 2 property-based
+testing, and on `beartype` for supplementary runtime type enforcement.
+
+All type checker outputs are real—they come from actual tool execution on the local system, not LLM simulation. The LLM is used exclusively for two purposes: generating candidate code from
+seed examples, and resolving uncertain verdicts in the agent-based fallback. The evaluation tiers (0–4) are entirely deterministic and reproducible.
+
+The tool is released as open source at [https://github.com/benedekaibas/pytifex-demo], enabling reproduction of our results and future research on type checker validation.
+
