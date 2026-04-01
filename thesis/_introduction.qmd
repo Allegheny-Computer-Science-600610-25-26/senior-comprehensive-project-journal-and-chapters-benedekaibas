@@ -184,6 +184,8 @@ and TypeGuard soundness—areas where checkers frequently diverge.
 5. **Open-source release of Pytifex and our generated test suite** at [https://github.com/benedekaibas/pytifex-demo], enabling reproduction
 and future research on type checker validation.
 
+## Ethical Implication
+
 ## Paper Organization
 
 The remainder of this paper is organized as follows. **Section 2** surveys related work in differential testing, type checker validation, and
