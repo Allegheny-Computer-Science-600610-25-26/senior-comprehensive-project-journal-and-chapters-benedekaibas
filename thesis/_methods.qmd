@@ -226,31 +226,31 @@ def has_disagreement(results: dict[str, CheckerResult]) -> bool:
     return len(set(statuses)) > 1
 ```
 
-Formally, let S = {s₁, s₂, s₃, s₄} be the set of checker statuses, where each sᵢ ∈ {ok, error}. A disagreement exists when |S| > 1—that is, not all checkers agree. For
+Formally, let S = {s₁, s₂, s₃, s₄} be the set of checker statuses, where each sᵢ ∈ {ok, error}. A disagreement exists when |S| > 1 that is, not all checkers agree. For
 example, if mypy, pyrefly, and zuban report error but ty reports ok, the candidate is a disagreement. Candidates where all four checkers agree are discarded.
 
-- 4 **Refine**. Examples that pass through the Filter step without exhibiting a disagreement—where all four checkers reported the same status—undergo up to two regeneration
-attempts. The refinement prompt includes the example's source code and the actual output from each checker, asking the LLM to minimally modify the code to induce a
+- 4 **Regenerate**. Examples that pass through the Filter step without exhibiting a disagreement where all four checkers reported the same status undergo up to two regeneration
+attempts. The regeneration prompt includes the example's source code and the actual output from each checker, asking the LLM to minimally modify the code to induce a
 disagreement. Strategies include adding a subtle type error that only some checkers catch, fixing an obvious error while preserving a subtle edge case, or changing the typing
-pattern (e.g., introducing a Protocol or TypeGuard). Refinement is iterative: if the first attempt does not produce a disagreement, the second attempt refines the output of
+pattern (e.g., introducing a `Protocol` or `TypeGuard`). Refinement is iterative: if the first attempt does not produce a disagreement, the second attempt regenerates the output of
 the first, giving the LLM two incremental adjustments rather than two independent attempts on the original. If neither attempt produces a disagreement, the example is
 discarded.
 
-This closed-loop design where checker feedback drives subsequent mutation distinguishes Pytifex from one-shot generation approaches. The refinement step recovers value from
-candidates that would otherwise be discarded: across our evaluation runs, approximately 71% of generated candidates exhibited disagreements, with refinement contributing a
+This closed loop design where checker feedback drives subsequent mutation distinguishes Pytifex from one-shot generation approaches. The refinement step recovers value from
+candidates that would otherwise be discarded: across our evaluation runs, approximately 71% of generated candidates exhibited disagreements with refinement contributing a
 portion of the successful examples.
 
 ## Saving Code Examples
 
-When the mutation-filter loop completes, Pytifex persists all disagreement-triggering examples to disk in a timestamped directory under `generated_examples/`. Each
+When the mutation filter loop completes, Pytifex persists all examples leading to disagreement to disk in a timestamped directory under `generated_examples/`. Each
 disagreement is saved as a standalone `.py` file containing the generated source code, and a companion `results.json` records the full pipeline run: the model used, the
 total number of candidates generated, the number of disagreements found, the per-batch success rate, and for each disagreement the raw output and status (`ok` or `error`)
-from every type checker. This structured output serves two purposes: it provides a reproducible artifact for subsequent evaluation, and it preserves the provenance chain from
+from every type checker. This structured output serves two purposes: it provides a reproducible artifact for subsequent evaluation and it preserves the provenance chain from
 mined seed to generated variant to checker outcome.
 
 The results JSON also records the `seed_issue` field for each disagreement—the GitHub issue URL that inspired the generated code—enabling traceability from a confirmed
 finding back through the LLM mutation to the original bug report. Examples that lack a valid `seed_issue` reference are discarded during generation, ensuring that every saved
-disagreement has documented provenance.
+disagreement has documented source.
 
 ### Code Complexity Metrics
 
@@ -260,11 +260,11 @@ profile of the test suite's diversity. The metrics are:
 
 - **`loc`**: Lines of code excluding blank lines and comment-only lines.
 - **`num_functions`**: Total number of function and async function definitions.
-- **`type_imports`**: Count of imports from `typing`, `typing_extensions`, and `collections.abc`—a proxy for the density of typing constructs.
+- **`type_imports`**: Count of imports from `typing`, `typing_extensions`, and `collections.abc`—a factor for the density of typing constructs.
 - **`type_density`**: Computed as `(typed_objects - untyped_objects) / loc`, where typed objects include annotated parameters, return types, and annotated assignments, and
 untyped objects include parameters without annotations (excluding `self`/`cls`), functions without return annotations, and bare assignments. A positive value indicates a
-predominantly annotated codebase; a negative value indicates sparse annotations.
-- **`internal_calls`**: Number of locally-defined functions that call other locally-defined functions, measuring internal coupling.
+predominantly annotated codebase while a negative value indicates sparse annotations.
+- **`internal_calls`**: Number of functions that are locally defined and call other locally defined functions to measure internal coupling.
 
 Code Listing 3.6 shows an excerpt from a real `results.json` entry, illustrating how checker outputs, statuses, seed provenance, and code metrics are stored together for a
 single disagreement.
@@ -281,7 +281,7 @@ single disagreement.
     "type_density": 0.1129,
     "internal_calls": 1
   },
-  "statuses": {
+  "statuses": { # NOTE: The statuses are simplified for the paper. Actual statuses include the full error message of the type checkers.
     "mypy": "error",
     "pyrefly": "ok",
     "zuban": "error",
@@ -300,7 +300,7 @@ one is right? To answer this, Pytifex employs a multi-phased evaluation system t
 static flow analysis to establish ground truth with varying degrees of confidence.
 
 The evaluation system processes each disagreement through multiple independent oracles, each contributing evidence toward a final verdict per checker. The phases are not
-sequential filters—all phases run on every disagreement, and their findings are aggregated by the `determine_verdicts` function (Section 3.X) that resolves conflicts by
+sequential filters since all phases run on every disagreement and their findings are aggregated by the `determine_verdicts` function (Section 3.X) that resolves conflicts by
 preferring higher-confidence evidence.
 
 ### Phase 0: AST-Based PEP Oracle
