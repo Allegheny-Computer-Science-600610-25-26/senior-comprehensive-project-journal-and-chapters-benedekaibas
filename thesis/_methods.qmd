@@ -306,7 +306,7 @@ preferring higher-confidence evidence.
 ### Phase 0: AST-Based PEP Oracle
 
 Phase 0 performs source-level AST analysis to identify definitive violations of Python typing PEP specifications, independently of any type checker output. The oracle parses
-the generated source code and applies a list of rule-based checks derived from PEPs 484, 526, 544, 586, 589, 591, 612, 634, 646, 647, 655, 673, 692, 695, 696, 698, 705,
+the generated source code and applies a list of rule based checks derived from PEPs 484, 526, 544, 586, 589, 591, 612, 634, 646, 647, 655, 673, 692, 695, 696, 698, 705,
 and 742. Each rule targets a specific construct. For example, `TDICT003` flags direct access to a `NotRequired` TypedDict field without a membership check (PEP 589),
 `FINAL003` detects overriding a `@final` method in a subclass (PEP 591), and `LSP001` identifies Liskov Substitution Principle violations in method overrides (PEP 484).
 
