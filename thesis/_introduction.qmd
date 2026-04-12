@@ -1,8 +1,3 @@
----
-title: "Pytifex: An Automated Differential Testing Agent For Python Type Checkers"
-date: "2025-10-11"
----
-
 # Introduction
 
 By 2025, Python has established itself as the dominant programming language, a trend corroborated by major industry indices including the

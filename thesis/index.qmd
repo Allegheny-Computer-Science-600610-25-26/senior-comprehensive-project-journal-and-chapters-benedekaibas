@@ -12,7 +12,7 @@ format:
 natbiboptions: numbers
 # EDIT AT YOUR OWN PERIL #
 
-title: An Automated Differential Testing Agent for Python Type Checkers
+title: Do Not Blame Me Mining and Mutating Type Checker Bugs; An LLM-Driven Approach to Differential Testing
 
 firstreader: Dr. Gregory M. Kapfhammer
 secondreader: Professor Douglas Luman

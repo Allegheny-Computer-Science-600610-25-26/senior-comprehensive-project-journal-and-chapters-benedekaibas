@@ -1,5 +1,5 @@
 ---
-title: "Mining and Mutating Type Checker Bugs: An LLM-Driven Approach to Differential Testing"
+title: "Do Not Blame Me Mining and Mutating Type Checker Bugs; An LLM-Driven Approach to Differential Testing"
 listing:
   - id: posts
     contents:
