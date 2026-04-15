@@ -148,9 +148,7 @@ conformance coverage, which independent testing places at 15% [@sinon2025conform
 Nine of the 21 curated files produce deterministic runtime crashes when executed, providing the highest confidence evidence of type checker bugs. Table 4.6 details the
 runtime errors and which checkers caught them.
 
-**Table 4.6: Runtime crash detection results (Tier 1). ✓ = caught
-the bug, ✗ = missed, Partial = flagged a related but not the
-crash-site error.**
+**Table 4.6: Runtime crash detection results (Tier 1). ✓ = caught the bug, ✗ = missed, Partial = flagged a related but not the crash-site error.**
 
 | File | Error | mypy | pyrefly | zuban | ty |
 |:-----|:------|:----:|:-------:|:-----:|:--:|
