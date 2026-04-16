@@ -32,14 +32,15 @@ jobs:
           sudo python -m pip install yq
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          tinytex: true
         if: always()
-      - name: Create LaTeX enviroment
-        run: |
-          quarto install tinytex
-        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: install jupyter
         run: |
-          python -m pip install jupyter
+          python3 -m pip install jupyter
+        if: always()
       - name: Setup Pages
         uses: actions/configure-pages@v5.0.0
         if: always()
