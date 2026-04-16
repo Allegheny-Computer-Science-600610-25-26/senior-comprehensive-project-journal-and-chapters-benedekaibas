@@ -24,7 +24,7 @@ Table 4.1 presents the code complexity metrics for all 25 curated files. The gen
 median of 26 LOC. Type annotation density which is the ratio of annotated to unannotated objects, normalized by lines of code, ranges from -0.04 to 0.48, with negative values
 indicating files where unannotated assignments outnumber typed parameters.
 
-**Table : Code complexity metrics for the 25 curated examples.**
+**Table 4.1: Code complexity metrics for the 25 curated examples.**
 
 | File | LOC | Funcs | Type Imports | Density | Calls |
 |:-----|----:|------:|-------------:|--------:|------:|
@@ -59,7 +59,7 @@ indicating files where unannotated assignments outnumber typed parameters.
 Table 4.2 summarizes the per-checker accuracy across all 25 curated examples. Accuracy is computed as the ratio of CORRECT verdicts to non-UNCERTAIN verdicts (i.e., cases
 where the evaluation system reached a definitive conclusion).
 
-**Table : Per-checker accuracy across the curated evaluation set.**
+**Table 4.2: Per-checker accuracy across the curated evaluation set.**
 
 | Checker | CORRECT | INCORRECT | UNCERTAIN | Total | Accuracy |
 |:--------|--------:|----------:|----------:|------:|---------:|
@@ -76,7 +76,7 @@ released as an alpha in early 2026.
 
 Table 4.3 presents the checker status (ok or error) and disagreement split pattern for each curated file.
 
-**Table : Checker statuses and disagreement split patterns.**
+**Table 4.3: Checker statuses and disagreement split patterns.**
 
 | File | mypy | pyrefly | zuban | ty | Split |
 |:-----|:----:|:-------:|:-----:|:--:|:-----:|
@@ -109,7 +109,7 @@ Table 4.3 presents the checker status (ok or error) and disagreement split patte
 The dominant disagreement pattern is the 3:1 split, where three checkers agree on a status (typically `error`) and one dissents (typically `ok`). Table 4.4 shows the
 distribution of split patterns across the curated set.
 
-**Table : Distribution of disagreement split patterns.**
+**Table 4.4: Distribution of disagreement split patterns.**
 
 | Pattern | Count | % | Examples |
 |:--------|------:|--:|:---------|
@@ -128,7 +128,7 @@ evaluation correctly determined which side was right, demonstrating that the tie
 
 Table 4.5 reveals which checker most frequently occupies the minority position in asymmetric splits (3:1 and 1:3).
 
-**Table : Minority checker frequency and correctness.**
+**Table 4.5: Minority checker frequency and correctness.**
 
 | Checker | Minority | As Error | As OK | Correct | Incorrect | Uncertain |
 |:--------|:--------:|---------:|------:|--------:|----------:|----------:|
@@ -149,11 +149,7 @@ Nine of the 21 curated files produce deterministic runtime crashes when executed
 runtime errors and which checkers caught them.
 
 
-**Table : Runtime crash detection results (Phase 1). ✓ = caught
-the bug, ✗ = missed, Partial = flagged a related but not the
-crash-site error.**
-=======
-**Table : Runtime crash detection results (Phase 1). ✓ = caught the bug, ✗ = missed, Partial = flagged a related but not the crash-site error.**
+**Table 4.6: Runtime crash detection results (Phase 1). ✓ = caught the bug, ✗ = missed, Partial = flagged a related but not the crash-site error.**
 
 
 | File | Error | mypy | pyrefly | zuban | ty |
