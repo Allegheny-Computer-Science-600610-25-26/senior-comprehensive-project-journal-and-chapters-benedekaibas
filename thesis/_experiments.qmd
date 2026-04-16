@@ -1,14 +1,473 @@
 # Experiments
 
-This chapter describes your experimental set up and evaluation. It should also
-produce and describe the results of your study. The section titles below offer
-a typical structure used for this chapter.
+## Evaluation Setup
 
-## Experimental Design
+We evaluate Pytifex across six independent pipeline runs conducted between February and April 2026, testing four type checkers spanning the maturity spectrum: the established
+mypy (v1.19.0), the recently released pyrefly (v0.44.2) and zuban (v0.3.0), and the alpha-stage ty (v0.0.1-alpha.32). Each run mined fresh seed bugs from type checker
+repositories, generated candidate programs via Gemini 2.5 Flash, filtered for disagreements, and evaluated the results through the comprehensive phased evaluation system
+described in Section 3.
 
-Especially as it pertains to responisble computing, if conducting experiments or
-evaluations that involve particular ethical considerations, detail those issues here.
+From the combined output of all runs, we randomly curated a set of 25 example files whose evaluation verdicts were manually verified for accuracy. The curation process involved
+inspecting the source code of each generated program, cross-referencing checker outputs against PEP specifications, and verifying that runtime behavior matched the phased
+oracle's assessment. Two candidate files were excluded because their Phase 2 (Hypothesis) evidence was questionable: `loop-newtype-divergence.py` produced `ValueError`
+exceptions from Hypothesis-generated edge case inputs (empty tuples) rather than genuine type errors, and `mixed-tuple-unpacking-newtype.py` exhibited similar false triggers
+from tuple length mismatches. Both files were excluded to ensure that every reported verdict in the curated set is defensible.
 
-## Evaluation
+The 25 curated files span four confidence phases. Nine files reached Phase 1 (runtime crash detection), representing the highest confidence verdicts where executing the
+generated code deterministically produces a `TypeError`, `KeyError`, or `AttributeError`. Four files reached Phase 2 (Hypothesis property-based testing), where the evaluation
+system discovered type violations by generating random inputs matching declared type signatures in the generated source files and catching runtime exceptions. Three files were
+resolved by Phase 0 (AST-based oracle), where static analysis independently identified a PEP violation and checked whether each checker flagged it. Seven files reached Phase 3
+(PEP specification compliance), where verdicts are derived from matching checker behavior against specific PEP requirements. Two files remained genuinely UNCERTAIN after all
+evaluation phases, representing areas where the Python typing specification is ambiguous and checkers make legitimately different design choices.
+
+Table 4.1 presents the code complexity metrics for all 25 curated files. The generated programs range from 5 to 62 lines of code (excluding comments and blank lines), with a
+median of 26 LOC. Type annotation density which is the ratio of annotated to unannotated objects, normalized by lines of code, ranges from -0.04 to 0.48, with negative values
+indicating files where unannotated assignments outnumber typed parameters.
+
+**Table 4.1: Code complexity metrics for the 25 curated examples.**
+
+| File | LOC | Funcs | Type Imports | Density | Calls |
+|:-----|----:|------:|-------------:|--------:|------:|
+| decorator-super-modified-sig. | 20 | 4 | 5 | 0.30 | 0 |
+| typevartuple-unpacking-prec. | 26 | 2 | 8 | -0.04 | 1 |
+| dataclass-transform-param. | 31 | 3 | 6 | -0.03 | 0 |
+| inherited-unsound-helper | 35 | 7 | 4 | 0.26 | 0 |
+| isinstance-protocol-div. | 57 | 5 | 6 | 0.16 | 1 |
+| typeddict-unpack-total-false | 20 | 1 | 3 | 0.30 | 0 |
+| typeddict-unpack-notrequired | 39 | 1 | 4 | 0.15 | 0 |
+| typeddict-unpack-nested | 33 | 1 | 3 | 0.18 | 0 |
+| typevartuple-generic-nested | 23 | 5 | 5 | 0.48 | 0 |
+| typeguard-self-protocol | 56 | 9 | 7 | 0.23 | 0 |
+| typeis-variance-divergence | 23 | 3 | 4 | 0.13 | 0 |
+| typeis-decorated-method | 22 | 4 | 5 | 0.18 | 0 |
+| decorator-super-generic-args | 20 | 4 | 5 | 0.25 | 0 |
+| walrus-comprehension | 5 | 0 | 0 | 0.00 | 0 |
+| typeddict-single-field | 5 | 1 | 1 | 0.00 | 0 |
+| literal-inference-divergence | 9 | 1 | 1 | 0.00 | 0 |
+| literal-narrowing | 16 | 4 | 2 | 0.13 | 3 |
+| list-concat-generic-self | 15 | 2 | 4 | 0.27 | 0 |
+| match-typeguard-generic | 33 | 3 | 5 | 0.12 | 2 |
+| match-protocol-generic-type | 47 | 13 | 5 | 0.26 | 0 |
+| typeddict-inherit-total-div. | 62 | 5 | 4 | 0.16 | 0 |
+| asyncio-generic-protocol-cb. | 35 | 8 | 6 | 0.23 | 3 |
+| typeguard-generic-list-newtype | 35 | 3 | 6 | 0.14 | 2 |
+| unsound-self-cast-divergence | 50 | 6 | 7 | 0.02 | 0 |
+| typeddict-total-inheritance | 62 | 2 | 8 | 0.11 | 1 |
+
+## Results Overview
+
+Table 4.2 summarizes the per-checker accuracy across all 25 curated examples. Accuracy is computed as the ratio of CORRECT verdicts to non-UNCERTAIN verdicts (i.e., cases
+where the evaluation system reached a definitive conclusion).
+
+**Table 4.2: Per-checker accuracy across the curated evaluation set.**
+
+| Checker | CORRECT | INCORRECT | UNCERTAIN | Total | Accuracy |
+|:--------|--------:|----------:|----------:|------:|---------:|
+| mypy | 18 | 5 | 2 | 25 | 78.3% |
+| zuban | 16 | 7 | 2 | 25 | 69.6% |
+| pyrefly | 12 | 11 | 2 | 25 | 52.2% |
+| ty | 1 | 21 | 3 | 25 | 4.5% |
+
+Mypy achieves the highest accuracy at 78.3%, correctly handling 18 of 23 decidable cases. Zuban follows at 69.6% (16 of 23), pyrefly at 52.2% (12 of 23), and ty at 4.5% (1
+of 22). The disparity between mypy and ty reflects the maturity gap: mypy has been under active development since 2012 with over 10,000 test cases in its suite, while ty was
+released as an alpha in early 2026.
+
+### Disagreement Structure
+
+Table 4.3 presents the checker status (ok or error) and disagreement split pattern for each curated file.
+
+**Table 4.3: Checker statuses and disagreement split patterns.**
+
+| File | mypy | pyrefly | zuban | ty | Split |
+|:-----|:----:|:-------:|:-----:|:--:|:-----:|
+| decorator-super-modified-sig. | error | error | error | ok | 3-1 |
+| typevartuple-unpacking-prec. | error | error | error | ok | 3-1 |
+| dataclass-transform-param. | error | error | error | ok | 3-1 |
+| inherited-unsound-helper | error | error | error | ok | 3-1 |
+| isinstance-protocol-div. | error | ok | ok | ok | 1-3 |
+| typeddict-unpack-total-false | error | error | error | ok | 3-1 |
+| typeddict-unpack-notrequired | error | error | error | ok | 3-1 |
+| typeddict-unpack-nested | error | error | error | ok | 3-1 |
+| typevartuple-generic-nested | error | error | error | ok | 3-1 |
+| typeguard-self-protocol | error | error | error | ok | 3-1 |
+| typeis-variance-divergence | error | ok | error | ok | 2-2 |
+| typeis-decorated-method | error | error | error | ok | 3-1 |
+| decorator-super-generic-args | ok | ok | ok | error | 1-3 |
+| walrus-comprehension | ok | error | ok | error | 2-2 |
+| typeddict-single-field | error | error | error | error | 0-4 |
+| literal-inference-divergence | error | error | error | ok | 3-1 |
+| list-concat-generic-self | error | ok | error | ok | 2-2 |
+| match-typeguard-generic | error | error | ok | error | 3-1 |
+| match-protocol-generic-type | error | error | error | ok | 3-1 |
+| literal-narrowing | error | ok | ok | error | 2-2 |
+| typeddict-inherit-total-div. | ok | error | error | ok | 2-2 |
+| asyncio-generic-protocol-cb. | error | ok | error | ok | 2-2 |
+| typeguard-generic-list-newtype | error | error | ok | ok | 2-2 |
+| unsound-self-cast-divergence | ok | error | ok | error | 2-2 |
+| typeddict-total-inheritance | error | ok | error | error | 3-1 |
+
+The dominant disagreement pattern is the 3:1 split, where three checkers agree on a status (typically `error`) and one dissents (typically `ok`). Table 4.4 shows the
+distribution of split patterns across the curated set.
+
+**Table 4.4: Distribution of disagreement split patterns.**
+
+| Pattern | Count | % | Examples |
+|:--------|------:|--:|:---------|
+| 3 error / 1 ok | 14 | 56.0% | decorator-super-modified-sig. (+13) |
+| 2 error / 2 ok | 8 | 32.0% | typeis-variance, walrus, literal-narrowing, typeddict-inherit (+4) |
+| 1 error / 3 ok | 2 | 8.0% | isinstance-protocol, decorator-super-generic |
+| 4 error / 0 ok | 1 | 4.0% | typeddict-single-field |
+
+The prevalence of 3:1 splits (56.0%) suggests that disagreements are typically caused by a single checker deviating from a widely shared interpretation, rather than by
+fundamental ambiguities that split the ecosystem evenly. The eight 2:2 splits represent genuinely contested areas where the ecosystem is divided: TypeIs variance (PEP 742),
+walrus operator scoping (PEP 572), Literal narrowing from `in` checks (PEP 586), TypedDict totality inheritance (PEP 589), asyncio Protocol callback signatures, TypeGuard
+with NewType in generic containers, generic list concatenation variance (PEP 484), and unsound cast semantics (PEP 673). Notably, in six of these eight 2-2 splits the phased
+evaluation correctly determined which side was right, demonstrating that the tiered oracle can resolve contested cases even when consensus-based approaches would fail.
+
+### Minority Analysis
+
+Table 4.5 reveals which checker most frequently occupies the minority position in asymmetric splits (3:1 and 1:3).
+
+**Table 4.5: Minority checker frequency and correctness.**
+
+| Checker | Minority | As Error | As OK | Correct | Incorrect | Uncertain |
+|:--------|:--------:|---------:|------:|--------:|----------:|----------:|
+| ty | 12 | 1 | 11 | 0 | 11 | 1 |
+| mypy | 1 | 1 | 0 | 0 | 1 | 0 |
+| pyrefly | 1 | 0 | 1 | 0 | 0 | 1 |
+| zuban | 1 | 0 | 1 | 0 | 1 | 0 |
+
+Ty appears as the sole minority checker in 12 of 15 minority cases (80.0%), and was INCORRECT in 11 of those 12 instances. In 11 of 12 cases, ty occupied the minority as `ok`
+which means it accepted code that the other three checkers flagged as erroneous. The single case where ty appeared as the minority with `error` (`decorator-super-generic-args`)
+was also an INCORRECT verdict: ty flagged an unresolved attribute on a `ParamSpec`-decorated callable while all three other checkers correctly accepted the code. Mypy,
+pyrefly, and zuban each appear as the minority checker in exactly one case. This concentration of minority appearances in ty is consistent with its alpha status and limited
+conformance coverage, which independent testing places at 15% [@sinon2025conformance].
+
+## Runtime-Proven False Negatives (Phase 1)
+
+Nine of the 21 curated files produce deterministic runtime crashes when executed, providing the highest confidence evidence of type checker bugs. Table 4.6 details the
+runtime errors and which checkers caught them.
+
+
+**Table 4.6: Runtime crash detection results (Phase 1). ✓ = caught the bug, ✗ = missed, Partial = flagged a related but not the crash-site error.**
+
+
+| File | Error | mypy | pyrefly | zuban | ty |
+|:-----|:------|:----:|:-------:|:-----:|:--:|
+| decorator-super-modified-sig. | TypeError | ✓ | ✓ | ✓ | ✗ |
+| typevartuple-unpacking-prec. | TypeError | ✓ | ✓ | ✓ | ✗ |
+| dataclass-transform-param. | TypeError | ✓ | ✓ | ✓ | ✗ |
+| inherited-unsound-helper | AttrError | Partial | ✗ | Partial | ✗ |
+| isinstance-protocol-div. | TypeError | Partial | ✗ | ✗ | ✗ |
+| typeddict-unpack-total-false | TypeError | ✓ | ✓ | ✓ | ✗ |
+| typeddict-unpack-notrequired | TypeError | ✓ | ✗ | ✗ | ✗ |
+| typeddict-unpack-nested | KeyError | ✓ | ✗ | ✗ | ✗ |
+| typevartuple-generic-nested | TypeError | ✓ | ✓ | ✓ | ✗ |
+
+In seven of these nine files, ty was the sole checker to miss the crash. It reported `ok` while the code raises `TypeError` or `KeyError` at runtime. In the remaining two
+files (`inherited-unsound-helper` and `isinstance-protocol-divergence`), all four checkers failed to detect the bug, exposing blind spots shared across the entire ecosystem.
+
+### TypedDict and Unpack (PEP 692)
+
+Three files exercise TypedDict combined with `Unpack`, a construct that allows TypedDict types to specify keyword argument types for functions. In `typeddict-unpack-total-false-extra`,
+a TypedDict with `total=False` is used with `Unpack` to define function keyword arguments and pass extra keywords that the TypedDict does not declare triggers a `TypeError`
+at runtime. Mypy, pyrefly, and zuban all correctly reject the call, but ty accepts it silently. In `typeddict-unpack-notrequired`, a similar pattern with `NotRequired` fields
+reveals a more nuanced split: only mypy correctly rejects the call when a required field is omitted, while pyrefly, zuban, and ty all miss the violation. The third file,
+`typeddict-unpack-nested` accesses an `extra_config` key on a TypedDict that does not declare it, producing a `KeyError`. In this case also, only mypy catches the invalid
+key access while the other three checkers accept it.
+
+This cluster of TypedDict findings demonstrates that even among the three checkers that generally perform well on Phase 1 cases, the interaction between TypedDict, `Unpack`,
+`NotRequired`, and `extra_items` exposes significant implementation gaps.
+
+### TypeVarTuple (PEP 646)
+
+Two files test TypeVarTuple handling. The file `typevartuple-unpacking-precision` uses a generic helper function with an explicit `List[Union[*Ts]]` return type that triggers
+a `TypeError` at runtime due to incorrect TypeVarTuple instantiation. The file `typevartuple-generic-class-nested-func` attempts to use both PEP 695 syntax (`class ConfigStore[*Ts]`)
+and explicit `Generic[*Ts]` inheritance simultaneously, resulting in a redundant generic base class error at import time. In both cases, mypy, pyrefly, and zuban correctly
+report errors while ty reports no issues.
+
+### Decorator Signatures and dataclass_transform
+
+The file `decorator-super-modified-signature` demonstrates a decorator that modifies a method's signature via `Concatenate` (PEP 612), causing a call-site mismatch that
+crashes with `TypeError: Derived.process_data() missing 1 required positional argument`. The file `dataclass-transform-param-spec-return` combines `@dataclass_transform`
+(PEP 681) with `ParamSpec`-based return types, producing a type error that three checkers catch but ty does not. Both files are seeded from real bug reports
+(astral-sh/ty#2646 and pyright#11015), illustrating the pipeline's ability to generate novel variations from historical patterns.
+
+### Shared Blind Spots
+
+Two files expose cases where all four checkers fail. The file `isinstance-protocol-divergence` defines a `Barkable` Protocol and uses it as the second argument to `isinstance()`.
+PEP 544 specifies that runtime checkable protocols require the `@runtime_checkable` decorator without it `isinstance()` raises `TypeError`. While mypy warns about the type
+argument, it still allows the code to proceed to the crash site without flagging the actual `isinstance` call. Pyrefly, zuban, and ty emit no relevant warnings.
+
+The file `inherited-unsound-helper` exposes a limitation in how type checkers handle the `Self` type (PEP 673) in inherited factory methods. A subclass overrides a factory
+method to return `BasicFactory[str]` instead of `Self`, causing an `AttributeError` when a subclass expects `Self`-typed attributes. All four checkers report errors related
+to the return type mismatch, but none catches the downstream `AttributeError` that occurs when the unsound return value is used. This represents a systemic gap: checkers
+validate the return type annotation in isolation but do not propagate the consequence of an unsound return through subsequent attribute accesses.
+
+## Hypothesis Property-Based Testing (Phase 2)
+
+Four files are evaluated at Phase 2, where Hypothesis generates random inputs matching declared type signatures in the generated source files and calls the generated
+functions to discover runtime type violations that Phase 1 (direct execution) did not trigger. Unlike Phase 1, which executes the program's `__main__` block as-is, Phase 2
+exercises code paths with adversarial inputs that the LLM-generated test harness may not have covered. Using this method the phased evaluation tries to discover as many code
+paths as possible in the mutated source files to explore possible `TypeError`s.
+
+### TypeGuard with Self in Protocol (PEP 647)
+
+The file `typeguard-self-protocol-refined` defines a `Validatable` Protocol with a `TypeGuard[Self]` method and two concrete implementations (`User` and `Product`).
+Hypothesis attempts to instantiate `Validatable` directly — which is prohibited by PEP 544 — triggering `TypeError: Protocols cannot be instantiated`. This is a real type
+safety violation because any code path that constructs a `Validatable()` will crash at runtime. Mypy, pyrefly, and zuban all flag Protocol related errors in the code while ty
+does not. It makes ty the sole INCORRECT checker for this given file.
+
+### TypeIs Variance Divergence (PEP 742)
+
+The file `typeis-variance-divergence-refined` declares a covariant `TypeVar` (`T_co`) and uses it as a type parameter for a class inheriting from `list[T_co]`. Since `list`
+is invariant, this creates a type-unsafe situation. Hypothesis discovers the violation by attempting to construct `MyContainer()` with keyword arguments that `list.__init__`
+does not accept, triggering `TypeError: list() takes no keyword arguments`. Mypy and zuban correctly flag the variance violation; pyrefly and ty accept the code silently.
+
+### TypeIs with Decorated Method (PEP 742)
+
+The file `typeis-decorated-method-refined` wraps a `TypeIs` function with a `ParamSpec`-based decorator, creating a semantic mismatch: `TypeIs[list[int]]` on a method should
+narrow the first positional argument (`self`), but the function's logic operates on the second argument (`x`). Hypothesis discovers that calling the decorated method with
+generated inputs triggers `TypeError: Validator.is_list_of_ints() missing 1 required positional argument`. Mypy, pyrefly, and zuban all report errors; ty accepts the code.
+
+### ParamSpec Decorator with super() (PEP 612)
+
+The file `decorator-super-generic-args` applies a `ParamSpec`-based decorator (`trace_method`) to a method that calls `super().greet()`. The decorator preserves the
+signature, but Hypothesis discovers that calling `Derived.greet()` without arguments triggers `TypeError: Derived.greet() missing 1 required positional argument: 'name'`. The
+decorator's wrapper function consumes `self` but does not correctly forward the remaining arguments to `super().greet()`. All four checkers miss this bug: mypy, pyrefly, and
+zuban accept the code without errors, and while ty flags an unresolved `__qualname__` attribute on the wrapped callable, it does not detect the failure that is related to the
+argument forwarding problem. This file represents one of the two cases where all four checkers received INCORRECT verdicts.
+
+## PEP Specification Compliance (Phase 3) and Oracle (Phase 0)
+
+Six files are evaluated at Phase 3 (PEP compliance) or Phase 0 (AST oracle), where verdicts are derived from matching checker behavior against specific PEP requirements. These
+files do not crash at runtime but contain constructs whose correct handling is prescribed by Python Enhancement Proposals.
+
+### Walrus Operator Scope (PEP 572)
+
+The file `walrus_comprehension.py` provides a minimal five-line
+test case that exposes a scoping disagreement:
+
+**Code Listing 4.1: Walrus operator in list comprehension
+(PEP 572).**
+```{python}
+lengths = list(range(5))
+cumsum = 0
+cs = [cumsum := cumsum + x for x in lengths]
+print(cs)
+print(cumsum)
+```
+
+PEP 572 specifies that the walrus operator (`:=`) in a comprehension targets the enclosing scope, and that the right-hand side of the assignment expression may reference
+variables from that scope. The variable `cumsum` is initialized to `0` in the enclosing scope before the comprehension executes. Mypy and zuban correctly accept this code
+without errors. However, pyrefly reports `cumsum is uninitialized` and ty reports `Name cumsum used when not defined`, both incorrectly treating the right-hand side reference
+to `cumsum` within the comprehension as an unresolved name despite its initialization in the enclosing scope. This small code example, seeded from ty issue #3077, demonstrates
+that even simple language features can expose fundamental scoping model differences between type checkers.
+
+### TypedDict Key Inference (PEP 589)
+
+The file `typeddict_single_field.py` tests what type a checker reveals when accessing a key which is not present in the TypedDict definition. PEP 589 specifies that such
+access is an error. All four checkers correctly report the invalid key access. However, when revealing the type of the expression `td["anything"]`, mypy and zuban report
+`Any`, pyrefly reports `Unknown`, and ty reports `str`. The first three behaviors are acceptable — `Any` or `Unknown` for an erroneous expression — but ty's inference of
+`str` implies that it resolves the invalid key to the value type of the TypedDict's declared fields, which could mask downstream type errors if the expression is used in
+further computation.
+
+### Literal Inference Ambiguity (PEP 586)
+
+The file `literal-inference-divergence` defines a class with an untyped attribute `DEFAULT_MODE = "production"` and passes it to a function expecting `Literal["production", "development", "staging"]`.
+Mypy, pyrefly, and zuban all report a type error because the attribute is inferred as `str`, not `Literal["production"]`. Ty accepts the code silently, inferring the
+attribute as a Literal type. PEP 586 allows but does not mandate Literal inference for variables initialized with literal values, making this a genuine design difference
+rather than a clear bug. We therefore assign ty an UNCERTAIN verdict for this file — its behavior is arguably more precise but diverges from the conservative approach adopted
+by the other three checkers.
+
+### Generic List Concatenation (PEP 484)
+
+The file `list-concat-generic-self` defines a `BaseContainer[T]` and a `SpecializedContainer` subclass, then concatenates lists of each:
+
+**Code Listing 4.2: Generic list concatenation with non-generic subclass.**
+```{python}
+class BaseContainer(Generic[T]):
+    def __init__(self, data: T):
+        self.data = data
+
+class SpecializedContainer(BaseContainer[T]):
+    pass
+
+base_list: list[BaseContainer[str]] = [BaseContainer("hello")]
+specialized_list: list[SpecializedContainer[str]] = [SpecializedContainer("world")]
+combined_list: list[BaseContainer[str]] = base_list + specialized_list
+```
+
+The AST oracle (Phase 0) identifies that `SpecializedContainer` is subscripted with type arguments despite not being independently generic — it inherits from `BaseContainer[T]`
+but does not declare its own type parameters. PEP 484 specifies that only classes that are explicitly generic (via `Generic[T]` or PEP 695 syntax) may be subscripted. Mypy and
+zuban correctly flag the unsupported operand types for the `+` concatenation, while pyrefly and ty accept it without error. This is a 2-2 split where the phased evaluation
+correctly identifies mypy and zuban as CORRECT and pyrefly and ty as INCORRECT through the oracle's structural analysis.
+
+### Literal Narrowing via Membership Tests (PEP 586)
+
+The file `literal_narrowing.py`, seeded from mypy issue #21090, tests whether type checkers narrow a `str` variable to `Literal["a", "b"]` after an `if foo in ("a", "b")`
+guard. PEP 586 does not explicitly mandate this narrowing, but the semantics are clear: after the guard, `foo` can only be `"a"` or `"b"`. The code then passes `foo` to a
+function expecting `Literal["a", "b"]`:
+
+**Code Listing 4.3: Literal narrowing via `in` check (PEP 586).**
+```{python}
+def bar(p: Literal["a", "b"]) -> None: ...
+
+def positive_in(foo: str):
+    if foo in ("a", "b"):
+        bar(foo)  # Should be accepted after narrowing
+```
+
+Pyrefly and zuban correctly narrow `foo` to `Literal["a", "b"]` and accept the call. Mypy and ty do not perform this narrowing, leaving `foo` as `str` and flagging the call
+as an `arg-type` error. This is a 2-2 split where the phased evaluation identifies pyrefly and zuban as CORRECT (they correctly narrow) and mypy and ty as INCORRECT (they miss
+a valid narrowing opportunity). This result is notable because mypy — the most mature checker — is on the wrong side, demonstrating that maturity does not guarantee correctness
+on every feature.
+
+### TypedDict Inheritance and Totality at Runtime (PEP 589)
+
+The file `typeddict-inheritance-total-divergence` creates a three-level TypedDict hierarchy where `BaseSettings(total=True)` declares required fields, `ExtendedSettings(total=False)`
+inherits them and adds optional fields, and `FinalSettings(total=True)` re-establishes totality. A dict literal missing the `api_key` field is annotated as `FinalSettings`,
+and the code crashes with a `KeyError` when the missing field is accessed at runtime. Pyrefly and zuban correctly flag the missing key, while mypy and ty do not — a 2-2 split
+resolved at Phase 1 (runtime crash) with pyrefly and zuban CORRECT and mypy and ty INCORRECT.
+
+### asyncio Protocol Callback Signatures
+
+The file `asyncio-generic-protocol-callback` defines a `TaskResultProcessor` Protocol with a `process_result` method that accepts an `asyncio.Task[T]` and an optional
+`metadata` string parameter. When the method is passed directly to `task.add_done_callback()`, the extra `metadata` parameter creates a signature mismatch: `add_done_callback`
+expects `Callable[[Task[T]], None]` but `process_result` has type `Callable[[Task[int], str], None]`. The AST oracle (Phase 0) identifies this as a PEP 484 argument type
+violation. Mypy and zuban correctly flag the incompatible callback type, while pyrefly and ty accept it silently — another 2-2 split where the phased evaluation correctly
+determines which checkers are right through structural analysis alone.
+
+### TypeGuard with NewType in Generic Containers
+
+The file `typeguard-generic-list-newtype`, seeded from mypy issue #18470, defines `TypeGuard` functions that narrow `List[U]` to `List[UserID]` or `List[ProductID]` where
+`UserID` and `ProductID` are `NewType` wrappers. The interaction between TypeGuard's narrowing semantics and NewType's nominal typing creates a complex type flow: after the
+guard, the list's element type should be narrowed to the specific NewType, but the generic `U` parameter complicates inference. Mypy correctly handles the narrowing and reports
+errors where the narrowed type is used incorrectly. Pyrefly, zuban, and ty all miss the violation — making this a case where only the most mature checker gets it right.
+
+### Match Exhaustiveness and Protocol Variance (PEPs 484, 544)
+
+Two files test the intersection of structural match patterns with generic types and Protocols. In `match-typeguard-generic-tuple`, a function uses `TypeGuard` functions within
+match case guards to narrow tuple types. The function declares a `str` return type but does not return a value on all code paths when the match statement is incomplete:
+
+**Code Listing 4.4: Non-exhaustive match with TypeGuard narrowing.**
+```{python}
+def process_item[X, Y](
+    item: Union[Tuple[int, bool], Tuple[str, str], Tuple[X, Y]]
+) -> str:
+    match item:
+        case (a, b) if is_str_pair(item):
+            return f"String pair: {a}, {b}"
+        case (x, y) if is_int_bool_pair(item):
+            return f"Int-bool pair: {x}, {y}"
+        case (p, q):
+            return f"Generic pair: {p}, {q}"
+    # Missing return when no case matches
+```
+
+Mypy, pyrefly, and ty correctly report the missing return statement, but zuban does not — producing a false negative for a straightforward PEP 484 requirement that all code
+paths must return a value when a return type is declared.
+
+In `match-protocol-generic-type`, a Protocol `Operation[P_R]` with an invariant type variable is used as a function parameter `op: Operation[T]`, and match arms return
+concrete types (`int`, `str`) where the generic `T` is declared. Mypy and zuban correctly report both the variance violation (PEP 544 requires Protocols to use appropriate
+variance annotations) and the return type incompatibility (returning `int` where `T` is expected violates PEP 484). Pyrefly and ty miss both errors, demonstrating incomplete
+support for the intersection of Protocol variance with pattern matching.
+
+## Genuinely Uncertain Cases
+
+Two files in our curated set receive UNCERTAIN verdicts for all four checkers, representing areas where the Python typing specification does not prescribe a single correct
+behavior. These cases illustrate a fundamental limitation of automated type checker evaluation that connects to Rice's theorem [@rice1953classes]: any non-trivial semantic
+property of a program is undecidable in general. Type checkers are heuristic approximations that make different trade-offs between soundness and completeness, and when the
+specification is ambiguous about which trade-off is correct, no automated oracle — whether runtime-based, AST-based, or LLM-based — can definitively resolve the disagreement.
+The challenge is compounded by the fact that type checker diagnostics are static warnings derived from heuristic inference, not provable facts. When two checkers infer different
+types for the same expression and the specification does not prescribe a unique answer, the disagreement reflects a legitimate design difference rather than a bug in either
+implementation.
+
+### Unsound Cast with Self (PEP 673)
+
+The file `unsound-self-cast-divergence` uses `cast(Self, ...)` to convert between `Node[int]` and `SpecialNode[int]` in a loop. The relevant pattern is:
+
+**Code Listing 4.5: Unsound cast from base to subclass via Self.**
+```{python}
+class Node(Generic[T]):
+    def get_next_or_default(self, default_val: T) -> Self:
+        if self._next is not None:
+            return cast(Self, self._next)  # Unsound: _next may be Node, not Self
+        else:
+            return type(self)(default_val)
+```
+
+This cast is inherently unsound — `self._next` is typed as `Node[T]` but `Self` may refer to `SpecialNode[T]`, a subclass with additional attributes. At runtime, accessing
+`current_node.metadata` after the unsound cast will raise `AttributeError` if the actual object is a plain `Node`. However, PEP 484 explicitly states that `cast()` is not
+checked at runtime and type checkers should trust it: "No runtime checking is performed... the type checker should suppress any errors on the expression." This creates a
+genuine design tension: mypy and zuban follow the specification literally and trust the cast, while pyrefly and ty attempt to validate the cast's soundness. Neither approach is
+definitively wrong — the specification intentionally leaves `cast()` unchecked, but a checker that warns about provably unsound casts provides additional safety. This
+disagreement cannot be resolved by any tier of our evaluation system because it is a philosophical difference about the role of `cast()` in the type system, not a factual
+question about what the code does.
+
+### TypedDict total= Inheritance (PEP 589)
+
+The file `typeddict-total-inheritance-divergence` defines a TypedDict hierarchy where `OptionalFeatures(TypedDict, total=False)` declares `debug_mode: bool` and
+`log_level: Literal[...]`, and `FullServiceConfig(BaseConfig, OptionalFeatures, total=True)` overrides totality:
+
+**Code Listing 4.6: TypedDict inheritance with conflicting totality.**
+```{python}
+class OptionalFeatures(TypedDict, total=False):
+    debug_mode: bool
+    log_level: Literal["INFO", "WARN", "ERROR"]
+
+class FullServiceConfig(BaseConfig, OptionalFeatures, total=True):
+    api_key: str
+    timeout_seconds: NotRequired[int]
+    # Are debug_mode and log_level Required or NotRequired here?
+```
+
+PEP 589 specifies that `total=True` makes all *newly declared* fields required, but the interaction between inherited fields from a `total=False` parent and the child's
+`total=True` setting is underspecified. Mypy treats the inherited fields as Required (consistent with the child's `total=True`), reasoning that totality applies to the final
+class's view of all its fields. Pyrefly and ty preserve the `NotRequired` status from the parent, reasoning that the original declaration's totality should be respected. Zuban
+takes a third approach, treating some inherited fields differently depending on whether they have explicit `NotRequired` annotations. All four checkers produce subtly different
+revealed types for `.get()` calls on the inherited fields, and no single behavior can be definitively identified as correct based on the current PEP text. This case exemplifies
+how specification ambiguity — not implementation bugs — can be the root cause of type checker disagreements, and why a fully automated evaluation system must acknowledge its
+own limits rather than force a verdict where none is warranted.
+
+## Discussion
+
+The results reveal a clear maturity gradient across the four evaluated type checkers. Mypy's 78.3% accuracy reflects over a decade of development and extensive conformance
+testing, though it is not infallible — the Literal narrowing case demonstrates that even the most mature checker can miss valid type narrowing opportunities. Zuban's 69.6%
+accuracy positions it as a competent alternative that handles most common patterns correctly but struggles with certain match exhaustiveness checks. Pyrefly's 52.2% accuracy
+indicates significant gaps in TypeIs handling, TypedDict Unpack support, and Protocol variance checking, despite correct behavior on most Phase 1 crash cases. Ty's 4.5%
+accuracy with only one CORRECT verdict across 22 decidable cases confirms that the alpha release lacks support for many advanced typing constructs that the other three
+checkers handle correctly.
+
+The phased evaluation system itself demonstrates a clear value hierarchy. Phase 1 (runtime crashes) resolved 9 of 25 files with the highest confidence. These verdicts are
+undeniable because code either crashes or it does not. Phase 2 (Hypothesis) resolved an additional 4 files by discovering type violations through adversarial input generation
+that the LLM-generated test harness may not have covered. Phase 0/3 (oracle and PEP compliance) resolved 10 files through static analysis and PEP matching. Only 2 of 25
+files (8.0%) remained genuinely UNCERTAIN, both involving specification ambiguities rather than evaluation limitations. The system's ability to resolve six of eight 2-2
+splits — cases where consensus-based approaches would be powerless — validates the design decision to use independent oracles rather than majority voting.
+
+The TypedDict ecosystem emerges as a particularly rich area for disagreements. Seven of the 25 mutated files exercise TypedDict features, and they span the full confidence
+spectrum from Phase 1 runtime crashes through Phase 3 PEP compliance to genuinely UNCERTAIN specification ambiguities. The three TypedDict Unpack files demonstrate a
+gradient of checker competence: mypy catches all three violations, pyrefly and zuban catch one of three, and ty catches none. The TypedDict inheritance files expose a deeper
+issue: the `total=` flag's interaction with inheritance is underspecified in PEP 589, leading to four different interpretations across the four checkers. This pattern
+suggests that TypedDict support beyond basic field access, particularly the interaction with `Unpack`, `NotRequired`, `total`, and `extra_items`, remains an area of active
+development across the ecosystem.
+
+The three files where all four checkers fail (`inherited-unsound-helper`, `isinstance-protocol-divergence`, and `decorator-super-generic-args`) are arguably the most valuable
+findings, as they expose blind spots shared across the entire ecosystem rather than individual checker weaknesses. These systemic gaps, unsound `Self` return types, Protocol
+runtime-checkability, and `ParamSpec` argument forwarding, represent areas where the typing specification may benefit from additional clarity or where checkers should invest
+in deeper semantic analysis.
 
 ## Threats to Validity
+
+Several factors limit the generalizability of the findings this paper discovered. First, the curated set of 25 files is small relative to the full space of Python typing
+constructs while the selected files cover the four major disagreement patterns identified in the research questions (TypedDict handling, generic Self types, NewType validation, and TypeGuard
+soundness), other construct categories remain unexplored. Second, all four type checkers are under active development, and the version specific results reported here
+(particularly for the alpha-stage ty) may not reflect the current state of these tools. We observed during our evaluation period that ty's conformance score improved across
+successive releases, suggesting rapid progress.
+
+Third, the exclusion of two Phase 2 files on the basis of questionable Hypothesis evidence introduces a selection effect. Our accuracy figures may overstate checker
+performance if the excluded files would have produced additional INCORRECT verdicts. However, including files with unreliable evidence would undermine the credibility of the
+curated set, and the author of this paper prioritizes verdict accuracy over sample size. Fourth, the LLM-generated test cases, while seeded from real bug reports, may
+exercise typing constructs in patterns that differ from real world codebases. The presence of seed issue references for 15 of 25 files provides some assurance of practical
+relevance, but the mutation process inevitably introduces artificial constructions that developers would rarely write.
+
