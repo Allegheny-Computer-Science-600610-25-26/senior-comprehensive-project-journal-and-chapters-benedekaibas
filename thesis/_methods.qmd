@@ -539,5 +539,5 @@ a command-line interface that supports four modes: `full` (generation + evaluati
 All type checker outputs are real—they come from actual tool execution on the local system, not LLM simulation. The LLM is used exclusively for two purposes: generating
 candidate code from seed examples, and resolving uncertain verdicts in the agent-based fallback. The evaluation phases (0–4) are entirely deterministic and reproducible.
 
-The tool is released as open source at [https://github.com/benedekaibas/pytifex-demo], enabling reproduction of our results and future research on type checker validation.
+The tool is released as open source at [https://github.com/benedekaibas/pytifex], enabling reproduction of our results and future research on type checker validation.
 
