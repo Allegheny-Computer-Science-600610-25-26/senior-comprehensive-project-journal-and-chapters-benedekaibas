@@ -83,8 +83,12 @@ def frobulate(field_type: type) -> str:
 Given this seed, the LLM generated a variation that explores a different construction in the same feature area: matching on `type()` with positional sub-patterns, combined
 with generics and the `Self` type.
 
-Figure: LLM-generated variation (adapted for presentation).
 ```{python}
+#| label: fig-llm-variation
+#| fig-cap: LLM-generated variation
+#| fig-scap:  LLM-generated variation
+#| lst-label: lst-llm-variation
+#| lst-cap: LLM-generated variation
 from typing import TypeVar, Self, Union, Any
 import copy
 
