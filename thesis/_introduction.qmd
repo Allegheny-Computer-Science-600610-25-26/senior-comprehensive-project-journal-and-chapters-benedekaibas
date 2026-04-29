@@ -196,3 +196,4 @@ on four type checkers—mypy, pyrefly, zuban, and ty—analyzing disagreement pa
 features including TypedDict totality, generic Self types, NewType validation, and TypeGuard soundness. **Section 5** discusses limitations,
 including the oracle's asymmetry in proving false negatives versus false positives, and outlines directions for enhancing Pytifex's evaluation
 methodology and expanding bug detection coverage.
+

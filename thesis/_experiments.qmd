@@ -59,7 +59,7 @@ Table: Code complexity metrics for the 25 curated examples
 Table 4.2 summarizes the per-checker accuracy across all 25 curated examples. Accuracy is computed as the ratio of CORRECT verdicts to non-UNCERTAIN verdicts (i.e., cases
 where the evaluation system reached a definitive conclusion).
 
-**Table 4.2: Per-checker accuracy across the curated evaluation set.**
+Table: Per-checker accuracy across the curated evaluation set.
 
 | Checker | CORRECT | INCORRECT | UNCERTAIN | Total | Accuracy |
 |:--------|--------:|----------:|----------:|------:|---------:|
@@ -74,9 +74,9 @@ released as an alpha in early 2026.
 
 ### Disagreement Structure
 
-Table 4.3 presents the checker status (ok or error) and disagreement split pattern for each curated file.
+Table presents the checker status (ok or error) and disagreement split pattern for each curated file.
 
-**Table 4.3: Checker statuses and disagreement split patterns.**
+Table: Checker statuses and disagreement split patterns.
 
 | File | mypy | pyrefly | zuban | ty | Split |
 |:-----|:----:|:-------:|:-----:|:--:|:-----:|
@@ -109,7 +109,7 @@ Table 4.3 presents the checker status (ok or error) and disagreement split patte
 The dominant disagreement pattern is the 3:1 split, where three checkers agree on a status (typically `error`) and one dissents (typically `ok`). Table 4.4 shows the
 distribution of split patterns across the curated set.
 
-**Table 4.4: Distribution of disagreement split patterns.**
+Table: Distribution of disagreement split patterns.
 
 | Pattern | Count | % | Examples |
 |:--------|------:|--:|:---------|
@@ -128,7 +128,7 @@ evaluation correctly determined which side was right, demonstrating that the tie
 
 Table 4.5 reveals which checker most frequently occupies the minority position in asymmetric splits (3:1 and 1:3).
 
-**Table 4.5: Minority checker frequency and correctness.**
+Table: Minority checker frequency and correctness.
 
 | Checker | Minority | As Error | As OK | Correct | Incorrect | Uncertain |
 |:--------|:--------:|---------:|------:|--------:|----------:|----------:|
@@ -149,7 +149,7 @@ Nine of the 21 curated files produce deterministic runtime crashes when executed
 runtime errors and which checkers caught them.
 
 
-**Table 4.6: Runtime crash detection results (Phase 1). ✓ = caught the bug, ✗ = missed, Partial = flagged a related but not the crash-site error.**
+Table: Runtime crash detection results (Phase 1). ✓ = caught the bug, ✗ = missed, Partial = flagged a related but not the crash-site error.
 
 
 | File | Error | mypy | pyrefly | zuban | ty |
@@ -248,8 +248,7 @@ files do not crash at runtime but contain constructs whose correct handling is p
 The file `walrus_comprehension.py` provides a minimal five-line
 test case that exposes a scoping disagreement:
 
-**Code Listing 4.1: Walrus operator in list comprehension
-(PEP 572).**
+Figure: Walrus operator in list comprehension (PEP 572).
 ```{python}
 lengths = list(range(5))
 cumsum = 0
@@ -284,7 +283,7 @@ by the other three checkers.
 
 The file `list-concat-generic-self` defines a `BaseContainer[T]` and a `SpecializedContainer` subclass, then concatenates lists of each:
 
-**Code Listing 4.2: Generic list concatenation with non-generic subclass.**
+Figure: Generic list concatenation with non-generic subclass.
 ```{python}
 class BaseContainer(Generic[T]):
     def __init__(self, data: T):
@@ -309,7 +308,7 @@ The file `literal_narrowing.py`, seeded from mypy issue #21090, tests whether ty
 guard. PEP 586 does not explicitly mandate this narrowing, but the semantics are clear: after the guard, `foo` can only be `"a"` or `"b"`. The code then passes `foo` to a
 function expecting `Literal["a", "b"]`:
 
-**Code Listing 4.3: Literal narrowing via `in` check (PEP 586).**
+Figure: Literal narrowing via `in` check (PEP 586).
 ```{python}
 def bar(p: Literal["a", "b"]) -> None: ...
 
@@ -350,7 +349,7 @@ errors where the narrowed type is used incorrectly. Pyrefly, zuban, and ty all m
 Two files test the intersection of structural match patterns with generic types and Protocols. In `match-typeguard-generic-tuple`, a function uses `TypeGuard` functions within
 match case guards to narrow tuple types. The function declares a `str` return type but does not return a value on all code paths when the match statement is incomplete:
 
-**Code Listing 4.4: Non-exhaustive match with TypeGuard narrowing.**
+Figure: Non-exhaustive match with TypeGuard narrowing.
 ```{python}
 def process_item[X, Y](
     item: Union[Tuple[int, bool], Tuple[str, str], Tuple[X, Y]]
@@ -387,7 +386,7 @@ implementation.
 
 The file `unsound-self-cast-divergence` uses `cast(Self, ...)` to convert between `Node[int]` and `SpecialNode[int]` in a loop. The relevant pattern is:
 
-**Code Listing 4.5: Unsound cast from base to subclass via Self.**
+Figure: Unsound cast from base to subclass via Self.
 ```{python}
 class Node(Generic[T]):
     def get_next_or_default(self, default_val: T) -> Self:
@@ -410,7 +409,7 @@ question about what the code does.
 The file `typeddict-total-inheritance-divergence` defines a TypedDict hierarchy where `OptionalFeatures(TypedDict, total=False)` declares `debug_mode: bool` and
 `log_level: Literal[...]`, and `FullServiceConfig(BaseConfig, OptionalFeatures, total=True)` overrides totality:
 
-**Code Listing 4.6: TypedDict inheritance with conflicting totality.**
+Figure: TypedDict inheritance with conflicting totality.
 ```{python}
 class OptionalFeatures(TypedDict, total=False):
     debug_mode: bool
