@@ -24,7 +24,7 @@ Table 4.1 presents the code complexity metrics for all 25 curated files. The gen
 median of 26 LOC. Type annotation density which is the ratio of annotated to unannotated objects, normalized by lines of code, ranges from -0.04 to 0.48, with negative values
 indicating files where unannotated assignments outnumber typed parameters.
 
-**Table 4.1: Code complexity metrics for the 25 curated examples.**
+Table: Code complexity metrics for the 25 curated examples
 
 | File | LOC | Funcs | Type Imports | Density | Calls |
 |:-----|----:|------:|-------------:|--------:|------:|
