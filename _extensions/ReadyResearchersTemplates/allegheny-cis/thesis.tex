@@ -16,6 +16,9 @@ $endif$
 
 \usepackage[letterpaper, portrait, margin=1.5in]{geometry}
 
+\usepackage{fvextra}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines, breakanywhere, breaknonspaceingroup, commandchars=\\\{\}}
+
 $if(csl-refs)$
 % definitions for citeproc citations
 \NewDocumentCommand\citeproctext{}{}
@@ -68,18 +71,17 @@ $endif$
 
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{enumitem}
+\usepackage{hyperref}
 \usepackage{listings}
 \usepackage{setspace}
 \usepackage{lmodern}
 \usepackage{longtable,booktabs,array}
-\newcounter{none}
 \usepackage{xcolor}
 \usepackage{etoolbox}
 \usepackage{titling}
 \usepackage{emptypage}
 \usepackage{graphicx}
 \usepackage{calc}
-\usepackage{hyperref}
 \setkeys{Gin}{width=\linewidth}
 \usepackage{ulem}
 \usepackage[Export]{adjustbox}

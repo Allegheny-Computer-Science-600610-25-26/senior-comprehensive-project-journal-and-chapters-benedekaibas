@@ -24,3 +24,5 @@ site_libs/
 
 # HTML files
 *.html
+
+.venv
