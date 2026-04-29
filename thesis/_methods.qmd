@@ -54,8 +54,10 @@ Code Listing 3.1(a) shows the original seed, mined from mypy issue #18524. The b
 unreachable when pattern matching on type objects with `--warn-unreachable` enabled. The code is valid Python that executes without error at runtime. Mypy's diagnostic was
 wrong. (This bug has since been fixed; the original false positive required the `--warn-unreachable` flag.)
 
-Figure: Original seed from mypy #18524 (false positive).
 ```{python}
+#| label: fig-orig-mypy-seed
+#| fig-cap: Original seed from mypy #18524 (false positive)
+#| fig-scap:  Original seed from mypy
 #| lst-label: lst-orig-mypy-seed
 #| lst-cap: Original seed from mypy #18524 (false positive)
 import builtins
@@ -77,12 +79,6 @@ def frobulate(field_type: type) -> str:
             return "bar"
     return ret
 ```
-
-\begin{figure}[h!]
-\centering
-\caption{Original seed from mypy #18524 (false positive)}
-\label{fig:original-seed}
-\end{figure}
 
 Given this seed, the LLM generated a variation that explores a different construction in the same feature area: matching on `type()` with positional sub-patterns, combined
 with generics and the `Self` type.
