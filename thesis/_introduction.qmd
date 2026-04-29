@@ -180,10 +180,12 @@ with a type error, we prove which checker failed to catch it statically.
 through runtime validation. We characterize four major disagreement patterns across TypedDict handling, generic Self types, NewType validation,
 and TypeGuard soundness—areas where checkers frequently diverge.
 
-5. **Open-source release of Pytifex and our generated test suite** at [https://github.com/benedekaibas/pytifex-demo], enabling reproduction
-and future research on type checker validation.
+5. **Open-source release of Pytifex and our generated test suite** at
+   [https://github.com/benedekaibas/pytifex], enabling reproduction and future research on type checker validation.
 
 ## Ethical Implication
+
+Ethical considerations are discussed in the Experiments chapter.
 
 ## Paper Organization
 
