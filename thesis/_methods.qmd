@@ -56,6 +56,8 @@ wrong. (This bug has since been fixed; the original false positive required the 
 
 Figure: Original seed from mypy #18524 (false positive).
 ```{python}
+#| lst-label: lst-orig-mypy-seed
+#| lst-cap: Original seed from mypy #18524 (false positive)
 import builtins
 import types
 
@@ -75,6 +77,12 @@ def frobulate(field_type: type) -> str:
             return "bar"
     return ret
 ```
+
+\begin{figure}[h!]
+\centering
+\caption{Original seed from mypy #18524 (false positive)}
+\label{fig:original-seed}
+\end{figure}
 
 Given this seed, the LLM generated a variation that explores a different construction in the same feature area: matching on `type()` with positional sub-patterns, combined
 with generics and the `Self` type.
