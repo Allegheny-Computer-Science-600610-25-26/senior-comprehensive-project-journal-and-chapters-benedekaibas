@@ -69,6 +69,10 @@ type-safe when runtime TypeErrors lurk in production.
 
 Figure 1 illustrates such a case:
 ```{python}
+#| label: fig-false-mypy
+#| fig-cap: False negative in mypy
+#| fig-scap: False negative in mypy
+#| lst-label: lst-false-mypy
 import itertools
 
 def check(obj: object) -> None:
@@ -83,12 +87,6 @@ def check(obj: object) -> None:
 if __name__ == "__main__":
     check(1)  # Crashes: 'module' object has no attribute 'DoesNotExist'
 ```
-
-\begin{figure}[h!]
-\centering
-\caption{False negative in mypy}
-\label{fig:false-mypy}
-\end{figure}
 
 The code in @fig-false-mypy passes type checking in mypy without warnings, yet crashes at runtime with an AttributeError—the `itertools` module has no
 DoesNotExist attribute. This is a classic false negative: the type checker's static analysis failed to catch that the pattern match references
