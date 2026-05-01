@@ -1,6 +1,6 @@
 # Introduction
 
-By 2025, Python has established itself as the dominant programming language, a trend corroborated by major industry indices including the
+By 2026, Python has established itself as the dominant programming language, a trend corroborated by major industry indices including the
 IEEE Spectrum and TIOBE [1, 2]. Its ecosystem is now foundational to diverse sectors, ranging from web and enterprise development to embedded
 systems and artificial intelligence. However, Python’s flexibility comes at a cost: a proneness to runtime failures. Research indicates
 that type-related errors are among the most prevalent runtime exceptions in Python development [3]. These errors, which occur when an operation
