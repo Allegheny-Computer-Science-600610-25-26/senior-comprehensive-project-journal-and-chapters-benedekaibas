@@ -143,7 +143,7 @@ even when consensus-based approaches would fail.
 
 ### Minority Analysis
 
-The figure \ref{fig:minority-checker-freq-correct} illustrates how often each checker found itself in the minority — distinguishing between cases where it flagged an error
+Figure \ref{fig:minority-checker-freq-correct} illustrates how often each checker found itself in the minority — distinguishing between cases where it flagged an error
 versus accepted the code and how frequently its disagreeing verdict was ultimately correct.
 
 | Checker | Times in Minority | Minority as Error | Minority as OK | Correct When Minority | Incorrect When Minority | Uncertain When Minority |
