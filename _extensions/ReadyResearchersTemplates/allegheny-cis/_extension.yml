@@ -1,6 +1,6 @@
 title: allegheny-cis
 author: dluman
-version: 1.0.3
+version: 1.0.7
 quarto-required: ">=1.6.0"
 contributes:
   format:
@@ -14,9 +14,11 @@ contributes:
       lot: true
       lof: true
       number-sections: true
+      code-overflow: wrap
     html:
       number-sections: true
       toc: true
       cite-method: natbib
       bibliography: references.bib
       cls: journal-of-the-acm.cls
+      code-overflow: wrap

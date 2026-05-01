@@ -1,15 +1,170 @@
-# Conclusion
+# Future Work
 
-Traditionally, this chapter addresses the areas proposed below as sections, although
-not necessarily in this order or organized as offered. However, the last section --
-"Ethical Implcations" is required for this chapter. See the heading below for more
-details.
+The findings reported in the Experiments chapter raise a number of follow-up questions that fall outside the scope of this paper but represent natural continuations of
+the Pytifex research program. The current pipeline establishes that bug-seeded mutation combined with a phased evaluation oracle can expose real implementation gaps
+across mypy, pyrefly, zuban, and ty. The system also surfaces several limitations: the curated evaluation set is small relative to the Python typing space, the oracle
+cannot resolve every disagreement when the specification itself is ambiguous, and the alpha stage of ty makes its results sensitive to release cadence. The directions
+described in this chapter respond directly to those limitations and to questions that the curated dataset opened but could not fully answer.
 
-## Summary of Results
+## Expanding the Evaluation Dataset
 
-## Future Work
+Across the six pipeline runs reported in the Experiments chapter, Pytifex produced a total of 106 disagreement-triggering code examples. Including all 106 examples in
+the body of this paper would have crowded out the analytical content and made the per-file discussion impossible to read at any reasonable length, so we randomly
+selected 25 of those 106 examples and manually verified each verdict for the curated set. This is not a limitation of the pipeline itself, which is capable of
+generating many more examples per run than were used in the analysis, but a constraint on what can be presented and discussed in a single paper. The full set of 106
+examples is preserved in the project repository and remains available for follow-up analysis.
 
-## Future Ethical Implications and Recommendations
+A natural direction for future work is therefore to run the pipeline for substantially longer windows and to grow the corpus from the current 106 examples to several
+thousand. Each additional run produces new seed bugs from the recency-biased GitHub mining stage and new mutated programs from the LLM, so the corpus expands without
+manual intervention. A larger corpus would allow finer-grained per-PEP accuracy estimates, would reduce the over-representation of TypedDict examples observed in the
+randomly drawn sample of 25, and would make it possible to track the rate at which previously unseen disagreement patterns appear as a function of pipeline runtime.
+The exclusion of `loop-newtype-divergence.py` and `mixed-tuple-unpacking-newtype.py` from the curated set also points to a concrete improvement target. Both files were
+removed because Hypothesis triggered `ValueError` exceptions from edge case inputs that did not represent genuine type violations. A refined Phase 2 implementation
+could distinguish these synthetic failures from real type bugs by inspecting the input that triggered the exception and rejecting cases where the exception originates
+from generic Python operations such as tuple unpacking on an empty tuple, rather than from a type-incorrect operation. With that filter in place, files of this kind
+could be admitted to the corpus without weakening verdict reliability.
 
-Especially as pertains to the public release or use of your software or methods, what
-unresolved or special issues remain? What recommendations might you make?
+## Reducing the Uncertain Verdict Band Without an LLM
+
+Pytifex currently routes disagreements that survive Phases 0 through 4 either to an UNCERTAIN verdict or, optionally, to a Gemini agent that acts as a final arbiter.
+The Experiments chapter notes that two of the 25 curated files received UNCERTAIN verdicts after the full phased cascade, and a larger fraction of the 106-example
+corpus reaches the same end state before any LLM call is made. A productive direction for future work is to insert an additional deterministic phase between Phase 4
+and the LLM arbiter, with the explicit goal of resolving as many of these UNCERTAIN cases as possible without invoking a model.
+
+The candidate phase would gather every disagreement that the existing four phases mark UNCERTAIN, group them by construct family, and apply targeted analyses
+specific to each group. For example, disagreements involving TypedDict totality inheritance would be evaluated against a precise structural rule derived from PEP 589,
+disagreements involving `cast()` soundness would be evaluated against PEP 484's explicit "no runtime checking" clause, and disagreements involving Protocol variance
+would be evaluated against PEP 544 conformance criteria. Cases that resolve definitively under one of these targeted analyses would receive a CORRECT or INCORRECT
+verdict at this new phase. Only the residual cases that no deterministic analysis can settle would then be passed to the LLM arbiter. This routing change would shrink
+the LLM's role from a default fallback to a last resort, would reduce the cost and non-determinism of the pipeline, and would also produce a clearer empirical record
+of which disagreement categories genuinely require human or model judgment versus which can be settled by careful specification reading.
+
+## Engaging Type Checker Development Teams Directly
+
+The verdicts reported in the Experiments chapter are derived without any input from the development teams that maintain mypy, pyrefly, zuban, and ty. This independence
+is intentional and is what allows Pytifex to act as an external auditor of the ecosystem, but it also means that the project has no direct channel for confirming
+findings or for understanding why a checker behaves as it does on a given example. A natural next step is to share the corpus and the per-file verdicts with each
+maintaining team and to solicit structured feedback on the cases they consider correct, incorrect, or specification-ambiguous.
+
+The feedback loop has value in both directions. From the maintainers' side, the corpus provides a ready supply of minimal reproducers covering recent PEPs, and the
+per-file verdicts provide a starting point for triage. From Pytifex's side, the maintainers' responses are ground truth that the phased oracle cannot produce on its
+own, particularly for the UNCERTAIN cases where the disagreement reflects a deliberate design choice rather than an implementation bug. A study that incorporates
+maintainer feedback into the verdict cascade, perhaps by recording it as an additional phase whose evidence is weighted equally with PEP citations, would produce a
+more accurate picture of which disagreements are bugs and which are intended behavior. The same channel could also be used to discuss the targeted oracle extensions
+described in the previous section before they are implemented, ensuring that any new automated rule reflects the maintainers' interpretation of the relevant PEP.
+
+## Strengthening the Phased Evaluation Oracle
+
+Two of the 25 curated files received UNCERTAIN verdicts after the full phased cascade. Both involve specification ambiguity rather than evaluation weakness, and the
+analysis in the Experiments chapter argues that no purely automated oracle can resolve them without overstepping its evidentiary base. Even so, several construct
+categories that produced UNCERTAIN results in earlier pipeline runs could be moved into a definitive verdict band with targeted oracle extensions.
+
+The Phase 0 AST oracle currently covers structural PEP violations such as missing TypedDict keys, unsupported generic subscription, and incompatible callback
+signatures. The Oracle rules added during this work for TDICT003 and TDICT004 detect unsafe `NotRequired` access and missing required keys in literal constructions,
+and they were directly responsible for resolving several 2-2 splits in the curated set. The same approach can be extended to additional construct families. Variance
+violations in user-defined Protocols (PEP 544), redundant `Generic` base classes when PEP 695 syntax is also present, and `Final` redefinition in subclass scopes are
+all candidates for AST-level oracle rules because their correctness criteria are stated unambiguously in the relevant PEPs.
+
+Phase 4 (static flow analysis) is the smallest and least developed phase in the current pipeline. It currently performs import availability checks, variance constraint
+analysis, and basic narrowing flow inspection. A richer Phase 4 implementation could carry abstract type information through `TypeIs` and `TypeGuard` flow, model the
+interaction between `match` patterns and exhaustiveness checks, and validate `ParamSpec` argument forwarding. The shared blind spot that all four checkers exhibited on
+`decorator-super-generic-args` is a clear target for this kind of analysis: a Phase 4 pass that traces the wrapped callable's signature through the decorator's
+`Callable[P, R]` typing could detect that `super().greet()` is invoked without the arguments declared by the original signature, and could attribute the runtime crash
+to the decorator's wrapper body before Phase 1 ever executes the program.
+
+A second extension concerns Phase 2. Hypothesis is currently configured to generate up to 30 examples per callable and to validate return types when `typeguard` is
+available. Two refinements would increase its yield. The first is to derive strategies for parametric types such as `TypeVar`, `TypeVarTuple`, and `ParamSpec`, which
+the current implementation skips. The second is to integrate the AST oracle's findings into the strategy choice, so that Hypothesis preferentially exercises functions
+whose parameter types match the constructs flagged by Phase 0. This coupling would direct property based testing toward the regions of the program where the oracle
+already suspects a violation, increasing the likelihood that a generated input triggers a runtime exception attributable to a real type bug rather than to an unrelated
+Python operation.
+
+## Resolving Specification Ambiguity Through Upstream Engagement
+
+The two genuinely UNCERTAIN files in the curated set, `unsound-self-cast-divergence` and `typeddict-total-inheritance-divergence`, expose a class of disagreements that
+no oracle can resolve while the underlying PEP remains ambiguous. The first case turns on whether `cast()` should be trusted unconditionally as PEP 484 prescribes, or
+whether checkers should warn about provably unsound casts. The second case turns on the interaction between `total=False` parents and `total=True` children in
+TypedDict inheritance, which PEP 589 does not specify in detail.
+
+A productive direction for future work is to compile the disagreements that fall into this band and submit them to the Python Typing Council and the relevant PEP
+authors as concrete specification issues. The Pytifex pipeline already produces the artifacts required for such a submission: a minimal reproducer, the four checker
+outputs, the phased oracle's evidence, and a written analysis of why the case is ambiguous. Filing these as typing-council discussions would feed the empirical
+findings of differential testing back into the specification process, closing a loop that currently runs only in one direction. The same channel could be used to
+propose clarifying language for PEP 589 totality inheritance, for the soundness expectations of `cast()` under PEP 484, and for the runtime behavior of Protocols with
+default arguments under PEP 544.
+
+A complementary effort is direct engagement with the four checker repositories. Each Phase 1 INCORRECT verdict in the curated set corresponds to a runtime crash that
+the affected checker did not catch. These cases are minimal reproducers of false negatives, and they are exactly the kind of report that maintainers can act on. A
+follow-up study could file each verified false negative as an upstream issue and track the time to triage and the time to fix. This would yield two empirical results
+of independent interest: a measurement of how Pytifex generated reports compare with organically reported bugs in terms of acceptance rate, and a longitudinal record
+of which checkers close which categories of bug fastest.
+
+## Longitudinal Tracking of the Checker Ecosystem
+
+The Experiments chapter measured ty's accuracy at 4.5% over the curated set, but it also noted that ty's conformance score improved across successive releases during
+the evaluation period. The same observation applies to pyrefly and zuban, both of which were released during the year preceding this work and continue to receive
+frequent updates. A snapshot evaluation captures the state of the ecosystem at one moment, but it cannot distinguish a permanent gap from a transient one.
+
+A longitudinal extension of Pytifex would re-run the curated set against every published release of each checker for some fixed window, recording how verdicts change
+as releases land. This would produce a per-checker maturity curve indexed by PEP and construct family, showing where each implementation is improving fastest and
+where progress has stalled. The analysis in the Experiments chapter implies that the mypy curve has flattened in regions where two decades of development already
+covered the relevant constructs, while ty's curve is steep across most of the test surface. A formal longitudinal study would replace these implications with measured
+trajectories.
+
+The same infrastructure would support a regression detection mode. If a release of a previously correct checker begins failing on a curated example, the change can be
+flagged automatically and the corresponding upstream commit identified. This would turn the Pytifex curated set into a continuous integration suite that the type
+checker community could subscribe to, mirroring the role that LLVM's test suite plays for compiler regressions.
+
+## Reducing Dependence on LLM Generation
+
+The mutation stage of the pipeline relies on Gemini 2.5 Flash to produce candidate programs from seed bugs. This choice was motivated by the success of FuzzGPT
+[@deng2024fuzzgpt] and similar bug-seeded approaches, and the 58% per-batch success rate documented in the Methods chapter shows that the LLM is effective at
+producing disagreement-triggering programs from a small seed pool. The dependency carries two costs that future work could address.
+
+The first cost is reproducibility. Gemini's output is non-deterministic at the temperatures used during generation, and the seed pool itself shifts across runs because
+the GitHub mining stage uses recency biased sampling. A future iteration of Pytifex could record every generation prompt and every model response in a local cache,
+allowing exact replay of any pipeline run. Combined with a pinned model version, this would make the generation stage fully reproducible without sacrificing the
+benefit of recency biased seed selection.
+
+The second cost is monetary. Gemini 2.5 Flash is a paid model, which means that researchers and developers who wish to run Pytifex must either obtain API credits or
+limit themselves to the small free tier that Google provides. This barrier is at odds with the project's goal of being a freely available auditing tool for the Python
+typing ecosystem. A future iteration of Pytifex should therefore migrate the mutation stage onto a free or fully open model, such as a locally hosted Llama variant or
+a comparable open-weight model that can be downloaded and run without metered API access. The mutation prompts described in the Methods chapter are not specific to
+Gemini and should transfer to any sufficiently capable instruction-tuned model with minimal adjustment. A study that compares per-batch disagreement yield across a
+free model and Gemini 2.5 Flash on the same seed pool would establish whether the move sacrifices any pipeline effectiveness, and would make Pytifex usable by anyone
+without payment.
+
+## Extending the Pipeline as the Checker Set Grows
+
+Pytifex currently evaluates four checkers and mines from five repositories, including pyright as a seed source even though pyright is not part of the differential
+testing stage. The Cambrian explosion of new Python type checkers described in the Introduction has not slowed: pyrefly, zuban, and ty all appeared within roughly a
+year of one another, and the trend across recent years suggests that further checkers are likely to enter the ecosystem on a similar cadence. A future direction for
+Pytifex is therefore to extend the differential testing stage as new checkers arise, rather than as a single up-front engineering task.
+
+The `run_checker_on_code` function in the Methods chapter already accommodates additional commands, and the disagreement filter operates on whatever set of checker
+statuses is supplied to it. Adding a new checker to the bank therefore requires registering its invocation command, mapping its exit status to the `ok` or `error`
+convention, and re-running the curated examples against it. Pyright is the most immediate candidate because it already serves as a seed source, and any further
+checker that emerges from the same trend can be added on the same path. Treating the checker bank as an open-ended set rather than a fixed quartet keeps Pytifex
+aligned with the ecosystem it audits, and ensures that the maturity gradient reported in the Experiments chapter remains current as new entrants reshape it.
+
+## Addressing the Theoretical Barrier
+
+The Experiments chapter invokes Rice's Theorem to explain why some disagreements admit no automated resolution. This is a real boundary, but it is not absolute. For
+constructs whose semantics can be expressed in a decidable fragment of type theory, model checking and formal verification techniques can produce definitive verdicts
+where heuristic oracles cannot. A future direction is to integrate a small theorem proving backend into Phase 4 for the subset of constructs where the relevant PEP
+admits a precise formal specification. PEP 484 generic variance, PEP 544 protocol conformance, and PEP 589 TypedDict structural compatibility are candidates because
+each has a reasonably crisp set-theoretic interpretation. A backend based on Z3 or a similar SMT solver could discharge proof obligations for these constructs and
+move them out of the UNCERTAIN band entirely. The cases that remain undecidable would then be those that genuinely depend on dynamic Python features, which is the
+correct location of the boundary.
+
+## Summary
+
+The Pytifex pipeline as described in this paper is a working differential testing agent that produces verifiable false negative reports for four Python type checkers.
+The directions outlined above respond to the limitations identified in the Experiments and Methods chapters and convert each of them into a concrete research
+extension. Growing the corpus beyond the 106 examples produced for this paper, inserting a deterministic phase that resolves UNCERTAIN cases before any LLM call,
+incorporating direct feedback from the four checker development teams, strengthening the phased oracle, engaging upstream with verified findings, tracking the
+ecosystem longitudinally, migrating the mutation stage to a free model, extending the checker bank as new entrants arrive, and integrating formal techniques where the
+specification permits, together describe a research program that takes Pytifex from a snapshot evaluation of the current Python typing landscape to a continuous
+instrument for measuring it. The findings reported in this paper indicate that such an instrument is needed: the maturity gap between the established and emerging
+checkers is large, the specification itself is imperfect, and the rate at which new typing PEPs land continues to outpace the rate at which existing checkers
+stabilise. Each of the directions described here is a step toward closing that gap.

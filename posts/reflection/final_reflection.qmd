@@ -1,0 +1,41 @@
+---
+title: "Reflection On My Work For CMPSC-600 and CMPSC-610"
+date: "2026-05-01"
+---
+
+# Reflection
+
+I have enjoyed doing my research in the field of type checkers, static analysis, software testing, programming langauges, software analysis. As you can see my research
+touched many areas of computer science - it is also true for my classmates since they have touched many different areas during their research. This experience definitely
+shaped me as a person and as a computer science student. Conducting this research taught me that computer science is all about continuous learning and diving deep into
+different areas. Thankfully to these courses I was able to clearly identify my interest in computer science. I have found my passion in static analysis and compilers which
+is the area I want to work in and do further research.
+
+## What Did I Do During My Senior Year
+
+Conducting a research with professionals who have a very deep and comprehensive knowledge in computer science such as Professor Gregory M. Kapfhammer and Professor Douglas
+Luman is very challanging, but on the other side very valuable. I could learn a lot from these professors during my studies and without them I would not been able to write
+my paper and conduct my research. During the offices hours they challanged me with their questions and highlighted areas where I was making mistakes or could have improve it.
+
+
+During my senior year I have done the following tasks:
+
+- Gathering and reading research papers
+- Continuously building my research tool
+- Writing my research paper
+- Fixing errors in pytifex (my research tool)
+- Making experiments
+- Evaluating results of experiments
+- Thinking about limitations and further development areas
+
+
+Probably I have missed several tasks that I have been doing during my final year, but since it was a busy year for me I am not surprised I cannot remember anything I have done.
+
+It was also very helpful that Professor Kapfhammer allowed me to sit in CMPSC-580 and learn more about the fundamentals of conducting research in the computer science field. I
+have realized that repeated learning can help a lot to deepen my knowledge on the studied materials.
+
+## Future Work
+
+I still have to write my research paper with Professor Kapfhammer for an international conference and also I do not stop developing Pytifex. There is still room for further
+improvement and learning, so I really want to take this research project to the next level.
+

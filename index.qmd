@@ -1,5 +1,5 @@
 ---
-title: "ReadyResearchers Template"
+title: "Pytifex: Automated Differential Testing of Python Type Checkers via LLM Agents"
 listing:
   - id: posts
     contents:

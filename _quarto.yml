@@ -5,19 +5,19 @@ project:
   - "*.qmd"
   - "!*.md"
 execute:
-  freeze: auto
+  freeze: false
 author:
-  - name: A. Student
-    email: astudent@allegheny.edu
+  - name: Benedek Kaibas
+    email: kaibas01@allegheny.edu
 website:
-  title: "ReadyResearchers Template"
+  title: "An Empirical Study on Static Analyzer Toolsets to Reduce False Positives, False Negatives in Python Type Checkers"
   navbar:
     right:
       - text: "Senior Thesis"
         href: thesis/index.qmd
       - about.qmd
       - icon: github
-        href: https://github.com/
+        href: https://github.com/benedekaibas
 format:
   html:
     theme: journal
