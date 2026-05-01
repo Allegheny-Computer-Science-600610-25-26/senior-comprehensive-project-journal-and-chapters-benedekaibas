@@ -7,7 +7,12 @@ format:
       hypothesis: true
     citeproc: true
     csl: journal-of-the-acm.csl
-  allegheny-cis-pdf: default
+  allegheny-cis-pdf:
+    include-in-header:
+      text: |
+        \makeatletter
+        \@ifundefined{c@none}{\newcounter{none}}{}
+        \makeatother
 
 natbiboptions: numbers
 # EDIT AT YOUR OWN PERIL #
