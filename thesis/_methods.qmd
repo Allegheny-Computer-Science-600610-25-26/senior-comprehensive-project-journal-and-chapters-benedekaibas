@@ -15,8 +15,8 @@ Figure \ref{fig:pytifex-pipeline} illustrates this architecture.
 \label{fig:pytifex-pipeline}
 \end{figure}
 
-As seen in \ref{fig:pytifex-pipeline} seed bugs are mined from closed GitHub issues and mutated by Gemini (Gemini 2.5 flash) to produce semantically similar variants that
-may trigger related failures across different type checkers. Valid variants are tested across four type checkers to identify disagreements. Disagreement-triggering code
+As seen in Figure \ref{fig:pytifex-pipeline} seed bugs are mined from closed GitHub issues and mutated by Gemini (Gemini 2.5 flash) to produce semantically similar variants
+that may trigger related failures across different type checkers. Valid variants are tested across four type checkers to identify disagreements. Disagreement-triggering code
 examples are executed at runtime; `TypeError`, `KeyError`, or `AttributeError` constitutes definitive evidence of a false negative. The pipeline guarantees that 100% of
 final outputs are confirmed false negatives.
 
@@ -174,7 +174,7 @@ without valid GitHub source issues are discarded.
 ### Mutation-Filter Loop
 
 The pipeline operates in a mutation-filter loop, iterating until a target number of disagreements is reached or a maximum number of attempts is exhausted. The outer loop is
-implemented in `generate_with_filtering` (Figure \ref{fig:fig-false-mypy}), which coordinates generation, testing, filtering, and refinement.
+implemented in `generate_with_filtering` (Figure \ref{fig:mutation-filter-loop}), which coordinates generation, testing, filtering, and refinement.
 
 ```{python}
 while len(collected) < target_count and attempt < max_attempts:
@@ -206,6 +206,7 @@ while len(collected) < target_count and attempt < max_attempts:
 \caption{Mutation Filter Loop Simplified From pipeline.py}
 \label{fig:mutation-filter-loop}
 \end{figure}
+ 
 
 Each iteration proceeds as follows:
 
