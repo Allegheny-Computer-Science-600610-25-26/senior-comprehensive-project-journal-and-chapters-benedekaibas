@@ -1,5 +1,5 @@
 ---
-title: "Pytifex: An Automated Differential Testing Agent For Python Type Checkers"
+title: "Pytifex: Automated Differential Testing of Python Type Checkers via LLM Agents"
 listing:
   - id: posts
     contents:
