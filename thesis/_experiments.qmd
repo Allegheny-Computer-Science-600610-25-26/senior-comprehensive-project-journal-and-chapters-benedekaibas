@@ -176,15 +176,15 @@ details the runtime errors and which checkers caught them.
 
 | File | Error | mypy | pyrefly | zuban | ty |
 |:-----|:------|:----:|:-------:|:-----:|:--:|
-| decorator-super-modified-sig. | TypeError | ✓ | ✓ | ✓ | ✗ |
-| typevartuple-unpacking-prec. | TypeError | ✓ | ✓ | ✓ | ✗ |
-| dataclass-transform-param. | TypeError | ✓ | ✓ | ✓ | ✗ |
+| decorator-super-modified-sig. | TypeError | $\checkmark$ | $\checkmark$ | $\checkmark$ | ✗ |
+| typevartuple-unpacking-prec. | TypeError | $\checkmark$ | $\checkmark$ | $\checkmark$ | ✗ |
+| dataclass-transform-param. | TypeError | $\checkmark$ | $\checkmark$ | $\checkmark$ | ✗ |
 | inherited-unsound-helper | AttrError | Partial | ✗ | Partial | ✗ |
 | isinstance-protocol-div. | TypeError | Partial | ✗ | ✗ | ✗ |
-| typeddict-unpack-total-false | TypeError | ✓ | ✓ | ✓ | ✗ |
-| typeddict-unpack-notrequired | TypeError | ✓ | ✗ | ✗ | ✗ |
-| typeddict-unpack-nested | KeyError | ✓ | ✗ | ✗ | ✗ |
-| typevartuple-generic-nested | TypeError | ✓ | ✓ | ✓ | ✗ |
+| typeddict-unpack-total-false | TypeError | $\checkmark$ | $\checkmark$ | $\checkmark$ | ✗ |
+| typeddict-unpack-notrequired | TypeError | $\checkmark$ | ✗ | ✗ | ✗ |
+| typeddict-unpack-nested | KeyError | $\checkmark$ | ✗ | ✗ | ✗ |
+| typevartuple-generic-nested | TypeError | $\checkmark$ | $\checkmark$ | $\checkmark$ | ✗ |
 
 \begin{figure}[h!]
 \centering
@@ -192,9 +192,9 @@ details the runtime errors and which checkers caught them.
 \label{fig:runtime-crash-detection}
 \end{figure}
 
-For runtime crash detection, the evaluation criteria centered on whether a type checker successfully identified the bug, represented by ✓, or failed to detect it, represented
-by ✗. However, given the nature of Python type checkers, some cases could not be categorized strictly as correct or incorrect — treating a missed bug purely as a false
-negative or an emitted warning purely as a false positive would not accurately reflect the checker's behavior. To account for this, a Partial verdict was assigned in two
+For runtime crash detection, the evaluation criteria centered on whether a type checker successfully identified the bug, represented by $\checkmark$, or failed to detect it,
+represented by ✗. However, given the nature of Python type checkers, some cases could not be categorized strictly as correct or incorrect — treating a missed bug purely as a
+false negative or an emitted warning purely as a false positive would not accurately reflect the checker's behavior. To account for this, a Partial verdict was assigned in two
 scenarios: when a type checker produced a heuristic or emitted multiple warnings of which at least one was correct, and when a type checker flagged a related error but not
 the specific error at the crash site.
 
