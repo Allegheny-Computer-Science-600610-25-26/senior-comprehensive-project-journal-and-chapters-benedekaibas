@@ -7,20 +7,23 @@ mypy (v1.19.0), the recently released pyrefly (v0.44.2) and zuban (v0.3.0), and 
 repositories, generated candidate programs via Gemini 2.5 Flash, filtered for disagreements, and evaluated the results through the comprehensive phased evaluation system
 described in Section 3.
 
-From the combined output of all runs, we randomly curated a set of 25 example files whose evaluation verdicts were manually verified for accuracy. The curation process involved
-inspecting the source code of each generated program, cross-referencing checker outputs against PEP specifications, and verifying that runtime behavior matched the phased
-oracle's assessment. Two candidate files were excluded because their Phase 2 (Hypothesis) evidence was questionable: `loop-newtype-divergence.py` produced `ValueError`
-exceptions from Hypothesis-generated edge case inputs (empty tuples) rather than genuine type errors, and `mixed-tuple-unpacking-newtype.py` exhibited similar false triggers
-from tuple length mismatches. Both files were excluded to ensure that every reported verdict in the curated set is defensible.
+From the combined output of all runs, Pytifex produced a total of 106 disagreement-triggering code examples. Presenting and discussing all 106 files in the body of
+this paper is not feasible at any reasonable length, so we randomly drew a sample of 25 examples from the full set of 106 and manually verified the evaluation verdicts
+for each one. The full 106-example corpus is preserved in the project repository and is available for follow-up analysis; the 25-example sample is the unit of analysis
+throughout the rest of this chapter. The curation process applied to the sampled files involved inspecting the source code of each generated program, cross-referencing
+checker outputs against PEP specifications, and verifying that runtime behavior matched the phased oracle's assessment. Two candidate files were excluded because their
+Phase 2 (Hypothesis) evidence was questionable: `loop-newtype-divergence.py` produced `ValueError` exceptions from Hypothesis-generated edge case inputs (empty tuples)
+rather than genuine type errors, and `mixed-tuple-unpacking-newtype.py` exhibited similar false triggers from tuple length mismatches. Both files were excluded to ensure
+that every reported verdict in the sampled set is defensible.
 
-The 25 curated files span four confidence phases. Nine files reached Phase 1 (runtime crash detection), representing the highest confidence verdicts where executing the
+The 25 sampled files span four confidence phases. Nine files reached Phase 1 (runtime crash detection), representing the highest confidence verdicts where executing the
 generated code deterministically produces a `TypeError`, `KeyError`, or `AttributeError`. Four files reached Phase 2 (Hypothesis property-based testing), where the evaluation
 system discovered type violations by generating random inputs matching declared type signatures in the generated source files and catching runtime exceptions. Three files were
 resolved by Phase 0 (AST-based oracle), where static analysis independently identified a PEP violation and checked whether each checker flagged it. Seven files reached Phase 3
 (PEP specification compliance), where verdicts are derived from matching checker behavior against specific PEP requirements. Two files remained genuinely UNCERTAIN after all
 evaluation phases, representing areas where the Python typing specification is ambiguous and checkers make legitimately different design choices.
 
-Figure \ref{fig:code-complexity} represents the code complexity metrics for all 25 curated files. The generated programs range from 5 to 62 lines of code (excluding comments
+Figure \ref{fig:code-complexity} represents the code complexity metrics for all 25 sampled files. The generated programs range from 5 to 62 lines of code (excluding comments
 and blank lines), with a median of 26 LOC. Type annotation density which is the ratio of annotated to unannotated objects, normalized by lines of code, ranges from -0.04 to
 0.48, with negative values indicating files where unannotated assignments outnumber typed parameters.
 
@@ -60,7 +63,7 @@ and blank lines), with a median of 26 LOC. Type annotation density which is the 
 
 ## Results Overview
 
-Figure \ref{fig:per-checker-accuracy} summarizes the per-checker accuracy across all 25 curated examples. Accuracy is computed as the ratio of CORRECT verdicts to
+Figure \ref{fig:per-checker-accuracy} summarizes the per-checker accuracy across all 25 sampled examples. Accuracy is computed as the ratio of CORRECT verdicts to
 non-UNCERTAIN verdicts (i.e., cases where the evaluation system reached a definitive conclusion).
 
 | Checker | CORRECT | INCORRECT | UNCERTAIN | Total | Accuracy |
@@ -82,7 +85,7 @@ released as an alpha in early 2026.
 
 ### Disagreement Structure
 
-Figure \ref{fig:checker-statuses} presents the checker status (ok or error) and disagreement split pattern for each curated file.
+Figure \ref{fig:checker-statuses} presents the checker status (ok or error) and disagreement split pattern for each sampled file.
 
 | File | mypy | pyrefly | zuban | ty | Split |
 |:-----|:----:|:-------:|:-----:|:--:|:-----:|
@@ -119,7 +122,7 @@ Figure \ref{fig:checker-statuses} presents the checker status (ok or error) and 
 \end{figure}
 
 The dominant disagreement pattern is the 3:1 split, where three checkers agree on a status (typically `error`) and one dissents (typically `ok`). Figure \ref{fig:distribution-disagreement-split}
-shows the distribution of split patterns across the curated set.
+shows the distribution of split patterns across the sampled set.
 
 | Pattern | Count | % | Examples |
 |:--------|------:|--:|:---------|
@@ -167,7 +170,7 @@ conformance coverage, which independent testing places at 15% [@sinon2025conform
 
 ## Runtime-Proven False Negatives (Phase 1)
 
-Nine of the 21 curated files produce deterministic runtime crashes when executed, providing the highest confidence evidence of type checker bugs. Figure \ref{fig:runtime-crash-detection}
+Nine of the 25 sampled files produce deterministic runtime crashes when executed, providing the highest confidence evidence of type checker bugs. Figure \ref{fig:runtime-crash-detection}
 details the runtime errors and which checkers caught them.
 
 
@@ -373,7 +376,7 @@ inherits them and adds optional fields, and `FinalSettings(total=True)` re-estab
 and the code crashes with a `KeyError` when the missing field is accessed at runtime. Pyrefly and zuban correctly flag the missing key, while mypy and ty do not — a 2-2 split
 resolved at Phase 1 (runtime crash) with pyrefly and zuban CORRECT and mypy and ty INCORRECT.
 
-### asyncio Protocol Callback Signatures
+### Asyncio Protocol Callback Signatures
 
 The file `asyncio-generic-protocol-callback` defines a `TaskResultProcessor` Protocol with a `process_result` method that accepts an `asyncio.Task[T]` and an optional
 `metadata` string parameter. When the method is passed directly to `task.add_done_callback()`, the extra `metadata` parameter creates a signature mismatch: `add_done_callback`
@@ -423,7 +426,7 @@ support for the intersection of Protocol variance with pattern matching.
 
 ## Genuinely Uncertain Cases
 
-Two files in our curated set receive UNCERTAIN verdicts for all four checkers, representing areas where the Python typing specification does not prescribe a single correct
+Two files in our sampled set receive UNCERTAIN verdicts for all four checkers, representing areas where the Python typing specification does not prescribe a single correct
 behavior. These cases illustrate a fundamental limitation of automated type checker evaluation that connects to Rice's theorem [@rice1953classes]: any non-trivial semantic
 property of a program is undecidable in general. Type checkers are heuristic approximations that make different trade-offs between soundness and completeness, and when the
 specification is ambiguous about which trade-off is correct, no automated oracle — whether runtime-based, AST-based, or LLM-based — can definitively resolve the disagreement.
@@ -516,15 +519,18 @@ in deeper semantic analysis.
 
 ## Threats to Validity
 
-Several factors limit the generalizability of the findings this paper discovered. First, the curated set of 25 files is small relative to the full space of Python typing
-constructs while the selected files cover the four major disagreement patterns identified in the research questions (TypedDict handling, generic Self types, NewType validation, and TypeGuard
-soundness), other construct categories remain unexplored. Second, all four type checkers are under active development, and the version specific results reported here
-(particularly for the alpha-stage ty) may not reflect the current state of these tools. We observed during our evaluation period that ty's conformance score improved across
-successive releases, suggesting rapid progress.
+Several factors limit the generalizability of the findings this paper discovered. First, the 25 files analysed in this chapter are a random sample drawn from the
+106-example corpus produced by the pipeline rather than the entire corpus, which introduces sampling variance into the per-checker accuracy estimates. The choice to
+work with 25 rather than 106 is driven by the practical limit on how many files can be presented and discussed in detail in a single paper, and the per-file analysis
+in this chapter is structured to be reproducible against any sample drawn from the same corpus. The four major disagreement patterns identified in the research questions
+(TypedDict handling, generic Self types, NewType validation, and TypeGuard soundness) are all represented in the sampled set, but other construct categories present in
+the full corpus may be under-represented or absent in the sample. Second, all four type checkers are under active development, and the version specific results reported
+here (particularly for the alpha-stage ty) may not reflect the current state of these tools. We observed during our evaluation period that ty's conformance score
+improved across successive releases, suggesting rapid progress.
 
 Third, the exclusion of two Phase 2 files on the basis of questionable Hypothesis evidence introduces a selection effect. Our accuracy figures may overstate checker
-performance if the excluded files would have produced additional INCORRECT verdicts. However, including files with unreliable evidence would undermine the credibility of the
-curated set, and the author of this paper prioritizes verdict accuracy over sample size. Fourth, the LLM-generated test cases, while seeded from real bug reports, may
-exercise typing constructs in patterns that differ from real world codebases. The presence of seed issue references for 15 of 25 files provides some assurance of practical
-relevance, but the mutation process inevitably introduces artificial constructions that developers would rarely write.
+performance if the excluded files would have produced additional INCORRECT verdicts. However, including files with unreliable evidence would undermine the credibility of
+the sampled set, and the author of this paper prioritizes verdict accuracy over sample size. Fourth, the LLM-generated test cases, while seeded from real bug reports,
+may exercise typing constructs in patterns that differ from real world codebases. The presence of seed issue references for 15 of 25 sampled files provides some assurance
+of practical relevance, but the mutation process inevitably introduces artificial constructions that developers would rarely write.
 
