@@ -20,11 +20,9 @@ resolved by Phase 0 (AST-based oracle), where static analysis independently iden
 (PEP specification compliance), where verdicts are derived from matching checker behavior against specific PEP requirements. Two files remained genuinely UNCERTAIN after all
 evaluation phases, representing areas where the Python typing specification is ambiguous and checkers make legitimately different design choices.
 
-Table 4.1 presents the code complexity metrics for all 25 curated files. The generated programs range from 5 to 62 lines of code (excluding comments and blank lines), with a
-median of 26 LOC. Type annotation density which is the ratio of annotated to unannotated objects, normalized by lines of code, ranges from -0.04 to 0.48, with negative values
-indicating files where unannotated assignments outnumber typed parameters.
-
-Table: Code complexity metrics for the 25 curated examples
+Figure \ref{fig:code-complexity} represents the code complexity metrics for all 25 curated files. The generated programs range from 5 to 62 lines of code (excluding comments
+and blank lines), with a median of 26 LOC. Type annotation density which is the ratio of annotated to unannotated objects, normalized by lines of code, ranges from -0.04 to
+0.48, with negative values indicating files where unannotated assignments outnumber typed parameters.
 
 | File | LOC | Funcs | Type Imports | Density | Calls |
 |:-----|----:|------:|-------------:|--------:|------:|
@@ -54,12 +52,16 @@ Table: Code complexity metrics for the 25 curated examples
 | unsound-self-cast-divergence | 50 | 6 | 7 | 0.02 | 0 |
 | typeddict-total-inheritance | 62 | 2 | 8 | 0.11 | 1 |
 
+\begin{figure}[h!]
+\centering
+\caption{Code Complexity Metrics For Generated Code Examples}
+\label{fig:code-complexity}
+\end{figure}
+
 ## Results Overview
 
-Table 4.2 summarizes the per-checker accuracy across all 25 curated examples. Accuracy is computed as the ratio of CORRECT verdicts to non-UNCERTAIN verdicts (i.e., cases
-where the evaluation system reached a definitive conclusion).
-
-Table: Per-checker accuracy across the curated evaluation set.
+Figure \ref{fig:per-checker-accuracy} summarizes the per-checker accuracy across all 25 curated examples. Accuracy is computed as the ratio of CORRECT verdicts to
+non-UNCERTAIN verdicts (i.e., cases where the evaluation system reached a definitive conclusion).
 
 | Checker | CORRECT | INCORRECT | UNCERTAIN | Total | Accuracy |
 |:--------|--------:|----------:|----------:|------:|---------:|
@@ -68,15 +70,19 @@ Table: Per-checker accuracy across the curated evaluation set.
 | pyrefly | 12 | 11 | 2 | 25 | 52.2% |
 | ty | 1 | 21 | 3 | 25 | 4.5% |
 
+\begin{figure}[h!]
+\centering
+\caption{Per-checker Accuracy Across Generated Code Examples}
+\label{fig:per-checker-accuracy}
+\end{figure}
+
 Mypy achieves the highest accuracy at 78.3%, correctly handling 18 of 23 decidable cases. Zuban follows at 69.6% (16 of 23), pyrefly at 52.2% (12 of 23), and ty at 4.5% (1
 of 22). The disparity between mypy and ty reflects the maturity gap: mypy has been under active development since 2012 with over 10,000 test cases in its suite, while ty was
 released as an alpha in early 2026.
 
 ### Disagreement Structure
 
-Table presents the checker status (ok or error) and disagreement split pattern for each curated file.
-
-Table: Checker statuses and disagreement split patterns.
+Figure \ref{fig:checker-statuses} presents the checker status (ok or error) and disagreement split pattern for each curated file.
 
 | File | mypy | pyrefly | zuban | ty | Split |
 |:-----|:----:|:-------:|:-----:|:--:|:-----:|
@@ -106,10 +112,14 @@ Table: Checker statuses and disagreement split patterns.
 | unsound-self-cast-divergence | ok | error | ok | error | 2-2 |
 | typeddict-total-inheritance | error | ok | error | error | 3-1 |
 
-The dominant disagreement pattern is the 3:1 split, where three checkers agree on a status (typically `error`) and one dissents (typically `ok`). Table 4.4 shows the
-distribution of split patterns across the curated set.
+\begin{figure}[h!]
+\centering
+\caption{Checker Statuses and Disagreement Split Patterns}
+\label{fig:checker-statuses}
+\end{figure}
 
-Table: Distribution of disagreement split patterns.
+The dominant disagreement pattern is the 3:1 split, where three checkers agree on a status (typically `error`) and one dissents (typically `ok`). Figure \ref{fig:distribution-disagreement-split}
+shows the distribution of split patterns across the curated set.
 
 | Pattern | Count | % | Examples |
 |:--------|------:|--:|:---------|
@@ -118,38 +128,47 @@ Table: Distribution of disagreement split patterns.
 | 1 error / 3 ok | 2 | 8.0% | isinstance-protocol, decorator-super-generic |
 | 4 error / 0 ok | 1 | 4.0% | typeddict-single-field |
 
-The prevalence of 3:1 splits (56.0%) suggests that disagreements are typically caused by a single checker deviating from a widely shared interpretation, rather than by
-fundamental ambiguities that split the ecosystem evenly. The eight 2:2 splits represent genuinely contested areas where the ecosystem is divided: TypeIs variance (PEP 742),
-walrus operator scoping (PEP 572), Literal narrowing from `in` checks (PEP 586), TypedDict totality inheritance (PEP 589), asyncio Protocol callback signatures, TypeGuard
-with NewType in generic containers, generic list concatenation variance (PEP 484), and unsound cast semantics (PEP 673). Notably, in six of these eight 2-2 splits the phased
-evaluation correctly determined which side was right, demonstrating that the tiered oracle can resolve contested cases even when consensus-based approaches would fail.
+\begin{figure}[h!]
+\centering
+\caption{Distribution of Disagreement Split Patterns}
+\label{fig:distribution-disagreement-split}
+\end{figure}
+
+The prevalence of 3:1 splits (56.0%) in Figure \ref{fig:distribution-disagreement-split} suggests that disagreements are typically caused by a single checker deviating from
+a widely shared interpretation, rather than by fundamental ambiguities that split the ecosystem evenly. The eight 2:2 splits represent genuinely contested areas where the
+ecosystem is divided: TypeIs variance (PEP 742), walrus operator scoping (PEP 572), Literal narrowing from `in` checks (PEP 586), TypedDict totality inheritance (PEP 589),
+asyncio Protocol callback signatures, TypeGuard with NewType in generic containers, generic list concatenation variance (PEP 484), and unsound cast semantics (PEP 673).
+Notably, in six of these eight 2-2 splits the phased evaluation correctly determined which side was right, demonstrating that the tiered oracle can resolve contested cases
+even when consensus-based approaches would fail.
 
 ### Minority Analysis
 
-Table 4.5 reveals which checker most frequently occupies the minority position in asymmetric splits (3:1 and 1:3).
+The figure \ref{fig:minority-checker-freq-correct} illustrates how often each checker found itself in the minority — distinguishing between cases where it flagged an error
+versus accepted the code and how frequently its disagreeing verdict was ultimately correct.
 
-Table: Minority checker frequency and correctness.
+| Checker | Times in Minority | Minority as Error | Minority as OK | Correct When Minority | Incorrect When Minority | Uncertain When Minority |
+|:--------|------------------:|------------------:|---------------:|----------------------:|------------------------:|------------------------:|
+| mypy    | 7                 | 4                 | 3              | 0                     | 4                       | 3                       |
+| pyrefly | 4                 | 3                 | 1              | 3                     | 1                       | 0                       |
+| zuban   | 6                 | 3                 | 3              | 2                     | 3                       | 1                       |
+| ty      | 20                | 6                 | 14             | 2                     | 15                      | 3                       |
 
-| Checker | Minority | As Error | As OK | Correct | Incorrect | Uncertain |
-|:--------|:--------:|---------:|------:|--------:|----------:|----------:|
-| ty | 12 | 1 | 11 | 0 | 11 | 1 |
-| mypy | 1 | 1 | 0 | 0 | 1 | 0 |
-| pyrefly | 1 | 0 | 1 | 0 | 0 | 1 |
-| zuban | 1 | 0 | 1 | 0 | 1 | 0 |
+\begin{figure}[h!]
+\centering
+\caption{Minority Checker Frequency and Correctness}
+\label{fig:minority-checker-freq-correct}
+\end{figure}
 
-Ty appears as the sole minority checker in 12 of 15 minority cases (80.0%), and was INCORRECT in 11 of those 12 instances. In 11 of 12 cases, ty occupied the minority as `ok`
-which means it accepted code that the other three checkers flagged as erroneous. The single case where ty appeared as the minority with `error` (`decorator-super-generic-args`)
+Ty appears as the sole minority checker in 20 cases, and was incorrect in 15 of those instances (75.0%). In 14 of the 20 cases, ty occupied the minority as ok, meaning it
+accepted code that the other three checkers flagged as erroneous. One of the cases where ty appeared as the minority with `error` (`decorator-super-generic-args`)
 was also an INCORRECT verdict: ty flagged an unresolved attribute on a `ParamSpec`-decorated callable while all three other checkers correctly accepted the code. Mypy,
 pyrefly, and zuban each appear as the minority checker in exactly one case. This concentration of minority appearances in ty is consistent with its alpha status and limited
 conformance coverage, which independent testing places at 15% [@sinon2025conformance].
 
 ## Runtime-Proven False Negatives (Phase 1)
 
-Nine of the 21 curated files produce deterministic runtime crashes when executed, providing the highest confidence evidence of type checker bugs. Table 4.6 details the
-runtime errors and which checkers caught them.
-
-
-Table: Runtime crash detection results (Phase 1). ✓ = caught the bug, ✗ = missed, Partial = flagged a related but not the crash-site error.
+Nine of the 21 curated files produce deterministic runtime crashes when executed, providing the highest confidence evidence of type checker bugs. Figure \ref{fig:runtime-crash-detection}
+details the runtime errors and which checkers caught them.
 
 
 | File | Error | mypy | pyrefly | zuban | ty |
@@ -163,6 +182,18 @@ Table: Runtime crash detection results (Phase 1). ✓ = caught the bug, ✗ = mi
 | typeddict-unpack-notrequired | TypeError | ✓ | ✗ | ✗ | ✗ |
 | typeddict-unpack-nested | KeyError | ✓ | ✗ | ✗ | ✗ |
 | typevartuple-generic-nested | TypeError | ✓ | ✓ | ✓ | ✗ |
+
+\begin{figure}[h!]
+\centering
+\caption{Runtime Crash Detection Results}
+\label{fig:runtime-crash-detection}
+\end{figure}
+
+For runtime crash detection, the evaluation criteria centered on whether a type checker successfully identified the bug, represented by ✓, or failed to detect it, represented
+by ✗. However, given the nature of Python type checkers, some cases could not be categorized strictly as correct or incorrect — treating a missed bug purely as a false
+negative or an emitted warning purely as a false positive would not accurately reflect the checker's behavior. To account for this, a Partial verdict was assigned in two
+scenarios: when a type checker produced a heuristic or emitted multiple warnings of which at least one was correct, and when a type checker flagged a related error but not
+the specific error at the crash site.
 
 In seven of these nine files, ty was the sole checker to miss the crash. It reported `ok` while the code raises `TypeError` or `KeyError` at runtime. In the remaining two
 files (`inherited-unsound-helper` and `isinstance-protocol-divergence`), all four checkers failed to detect the bug, exposing blind spots shared across the entire ecosystem.
@@ -245,10 +276,8 @@ files do not crash at runtime but contain constructs whose correct handling is p
 
 ### Walrus Operator Scope (PEP 572)
 
-The file `walrus_comprehension.py` provides a minimal five-line
-test case that exposes a scoping disagreement:
+The file `walrus_comprehension.py` presented in Figure \ref{fig:walrus-operator-pep}provides a minimal five-line test case that exposes a scoping disagreement:
 
-Figure: Walrus operator in list comprehension (PEP 572).
 ```{python}
 lengths = list(range(5))
 cumsum = 0
@@ -256,6 +285,12 @@ cs = [cumsum := cumsum + x for x in lengths]
 print(cs)
 print(cumsum)
 ```
+
+\begin{figure}[h!]
+\centering
+\caption{Walrus Operator in List Comprehension (PEP 572)}
+\label{fig:walrus-operator-pep}
+\end{figure}
 
 PEP 572 specifies that the walrus operator (`:=`) in a comprehension targets the enclosing scope, and that the right-hand side of the assignment expression may reference
 variables from that scope. The variable `cumsum` is initialized to `0` in the enclosing scope before the comprehension executes. Mypy and zuban correctly accept this code
@@ -281,9 +316,9 @@ by the other three checkers.
 
 ### Generic List Concatenation (PEP 484)
 
-The file `list-concat-generic-self` defines a `BaseContainer[T]` and a `SpecializedContainer` subclass, then concatenates lists of each:
+As seen in Fiure \ref{fig:generic-list-concatenation} the file `list-concat-generic-self` defines a `BaseContainer[T]` and a `SpecializedContainer` subclass, then
+concatenates lists of each:
 
-Figure: Generic list concatenation with non-generic subclass.
 ```{python}
 class BaseContainer(Generic[T]):
     def __init__(self, data: T):
@@ -296,6 +331,11 @@ base_list: list[BaseContainer[str]] = [BaseContainer("hello")]
 specialized_list: list[SpecializedContainer[str]] = [SpecializedContainer("world")]
 combined_list: list[BaseContainer[str]] = base_list + specialized_list
 ```
+\begin{figure}[h!]
+\centering
+\caption{Generic List Concatenation with Non-generic Subclass}
+\label{fig:generic-list-concatenation}
+\end{figure}
 
 The AST oracle (Phase 0) identifies that `SpecializedContainer` is subscripted with type arguments despite not being independently generic — it inherits from `BaseContainer[T]`
 but does not declare its own type parameters. PEP 484 specifies that only classes that are explicitly generic (via `Generic[T]` or PEP 695 syntax) may be subscripted. Mypy and
@@ -306,9 +346,8 @@ correctly identifies mypy and zuban as CORRECT and pyrefly and ty as INCORRECT t
 
 The file `literal_narrowing.py`, seeded from mypy issue #21090, tests whether type checkers narrow a `str` variable to `Literal["a", "b"]` after an `if foo in ("a", "b")`
 guard. PEP 586 does not explicitly mandate this narrowing, but the semantics are clear: after the guard, `foo` can only be `"a"` or `"b"`. The code then passes `foo` to a
-function expecting `Literal["a", "b"]`:
+function expecting `Literal["a", "b"]` as presented in Figure \ref{fig:list-narrowing-via-in}:
 
-Figure: Literal narrowing via `in` check (PEP 586).
 ```{python}
 def bar(p: Literal["a", "b"]) -> None: ...
 
@@ -316,6 +355,11 @@ def positive_in(foo: str):
     if foo in ("a", "b"):
         bar(foo)  # Should be accepted after narrowing
 ```
+\begin{figure}[h!]
+\centering
+\caption{Literal Narrowing via `in` Check (PEP 586)}
+\label{fig:list-narrowing-via-in}
+\end{figure}
 
 Pyrefly and zuban correctly narrow `foo` to `Literal["a", "b"]` and accept the call. Mypy and ty do not perform this narrowing, leaving `foo` as `str` and flagging the call
 as an `arg-type` error. This is a 2-2 split where the phased evaluation identifies pyrefly and zuban as CORRECT (they correctly narrow) and mypy and ty as INCORRECT (they miss
@@ -347,9 +391,9 @@ errors where the narrowed type is used incorrectly. Pyrefly, zuban, and ty all m
 ### Match Exhaustiveness and Protocol Variance (PEPs 484, 544)
 
 Two files test the intersection of structural match patterns with generic types and Protocols. In `match-typeguard-generic-tuple`, a function uses `TypeGuard` functions within
-match case guards to narrow tuple types. The function declares a `str` return type but does not return a value on all code paths when the match statement is incomplete:
+match case guards to narrow tuple types. The function declares a `str` return type but does not return a value on all code paths when the match statement is incomplete. Figure \ref{fig:non-exhaustive-match-typeguard}
+illustrates this behavior:
 
-Figure: Non-exhaustive match with TypeGuard narrowing.
 ```{python}
 def process_item[X, Y](
     item: Union[Tuple[int, bool], Tuple[str, str], Tuple[X, Y]]
@@ -363,6 +407,11 @@ def process_item[X, Y](
             return f"Generic pair: {p}, {q}"
     # Missing return when no case matches
 ```
+\begin{figure}[h!]
+\centering
+\caption{Non-exhaustive Match with TypeGuard Narrowing}
+\label{fig:non-exhaustive-match-typeguard}
+\end{figure}
 
 Mypy, pyrefly, and ty correctly report the missing return statement, but zuban does not — producing a false negative for a straightforward PEP 484 requirement that all code
 paths must return a value when a return type is declared.
@@ -384,9 +433,9 @@ implementation.
 
 ### Unsound Cast with Self (PEP 673)
 
-The file `unsound-self-cast-divergence` uses `cast(Self, ...)` to convert between `Node[int]` and `SpecialNode[int]` in a loop. The relevant pattern is:
+The file `unsound-self-cast-divergence` shown in Figure \ref{fig:unsound-cast-from-base} uses `cast(Self, ...)` to convert between `Node[int]` and `SpecialNode[int]` in a
+loop. The relevant pattern is:
 
-Figure: Unsound cast from base to subclass via Self.
 ```{python}
 class Node(Generic[T]):
     def get_next_or_default(self, default_val: T) -> Self:
@@ -395,6 +444,11 @@ class Node(Generic[T]):
         else:
             return type(self)(default_val)
 ```
+\begin{figure}[h!]
+\centering
+\caption{Unsound Cast From Base to Subclass via Self}
+\label{fig:unsound-cast-from-base}
+\end{figure}
 
 This cast is inherently unsound — `self._next` is typed as `Node[T]` but `Self` may refer to `SpecialNode[T]`, a subclass with additional attributes. At runtime, accessing
 `current_node.metadata` after the unsound cast will raise `AttributeError` if the actual object is a plain `Node`. However, PEP 484 explicitly states that `cast()` is not
@@ -407,9 +461,8 @@ question about what the code does.
 ### TypedDict total= Inheritance (PEP 589)
 
 The file `typeddict-total-inheritance-divergence` defines a TypedDict hierarchy where `OptionalFeatures(TypedDict, total=False)` declares `debug_mode: bool` and
-`log_level: Literal[...]`, and `FullServiceConfig(BaseConfig, OptionalFeatures, total=True)` overrides totality:
+`log_level: Literal[...]`, and `FullServiceConfig(BaseConfig, OptionalFeatures, total=True)` overrides totality. This is demonstrated in Figure \ref{fig:typed-dict-inheritance}:
 
-Figure: TypedDict inheritance with conflicting totality.
 ```{python}
 class OptionalFeatures(TypedDict, total=False):
     debug_mode: bool
@@ -420,6 +473,11 @@ class FullServiceConfig(BaseConfig, OptionalFeatures, total=True):
     timeout_seconds: NotRequired[int]
     # Are debug_mode and log_level Required or NotRequired here?
 ```
+\begin{figure}[h!]
+\centering
+\caption{TypedDict Inheritance With Conflicting Totality}
+\label{fig:typed-dict-inheritance}
+\end{figure}
 
 PEP 589 specifies that `total=True` makes all *newly declared* fields required, but the interaction between inherited fields from a `total=False` parent and the child's
 `total=True` setting is underspecified. Mypy treats the inherited fields as Required (consistent with the child's `total=True`), reasoning that totality applies to the final

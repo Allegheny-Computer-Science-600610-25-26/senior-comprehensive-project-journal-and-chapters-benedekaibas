@@ -67,7 +67,7 @@ excessive false positives leads to warning fatigue—developers begin ignoring a
 defeating the purpose of static analysis. Conversely, false negatives provide a dangerous illusion of safety: developers believe their code is
 type-safe when runtime TypeErrors lurk in production.
 
-Figure 1 \ref{fig:fig-false-mypy} illustrates such a case:
+Figure \ref{fig:fig-false-mypy} illustrates such a case:
 ```{python}
 import itertools
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 \label{fig:fig-false-mypy}
 \end{figure}
 
-The code in Figuer 1 \ref{fig:fig-false-mypy} passes type checking in mypy without warnings, yet crashes at runtime with an AttributeError—the `itertools` module has no
+The code in Figure \ref{fig:fig-false-mypy} passes type checking in mypy without warnings, yet crashes at runtime with an AttributeError—the `itertools` module has no
 DoesNotExist attribute. This is a classic false negative: the type checker's static analysis failed to catch that the pattern match references
 a non-existent class, providing developers with false confidence in code correctness.
 
